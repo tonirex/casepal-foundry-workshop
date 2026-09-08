@@ -1,2 +1,3 @@
 # CasePal case-management MCP server (Lab 5, Part A)
-mcp>=1.9.0
+# Pin to v1.x — v2 renamed FastMCP to MCPServer and broke the API.
+mcp>=1.9.0,<2.0.0

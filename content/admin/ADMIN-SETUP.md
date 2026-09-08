@@ -27,8 +27,8 @@ Pre-deploy these before the day; attendees with Foundry User cannot deploy model
 | Deployment name | Use |
 |---|---|
 | `model-router` | Default for all labs and portal agents. |
-| `gpt-5.5` | Reasoning model for ambiguous or novel cases. |
-| `gpt-5.4-mini` | Fast path for clean intake and routine prompts. |
+| `gpt-5` | Reasoning model for ambiguous or novel cases. |
+| `gpt-5-mini` | Fast path for clean intake and routine prompts. |
 | `text-embedding-3-small` | Knowledge indexing for `casepal-knowledge`. |
 
 Warm each deployment with one smoke prompt after provisioning.

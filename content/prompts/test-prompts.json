@@ -3,7 +3,7 @@
   "enums": {
     "declared_class": ["A", "B", "C", "D", "needs_reviewer_determination"],
     "recommendation": ["accept", "accept_with_condition", "query", "reject", "needs_review"],
-    "router_choice_expected": ["gpt-5.4-mini", "gpt-5.5"]
+    "router_choice_expected": ["gpt-5-mini", "gpt-5"]
   },
   "prompts": {
 
@@ -50,7 +50,7 @@
           "submission_type": "variation",
           "documents_missing_for_class": []
         },
-        "router_choice_expected": "gpt-5.4-mini",
+        "router_choice_expected": "gpt-5-mini",
         "behaviour": "Clean variation intake. Router picks mini. All Class C documents present."
       }
     },
@@ -66,8 +66,8 @@
           "device.declared_class": "C",
           "priority_flags_must_contain": ["novel_technology", "ai_md"]
         },
-        "router_choice_expected": "gpt-5.5",
-        "behaviour": "Novel AI-MD. Router escalates to gpt-5.5. Priority flags 'novel_technology' + 'ai_md' set."
+        "router_choice_expected": "gpt-5",
+        "behaviour": "Novel AI-MD. Router escalates to gpt-5. Priority flags 'novel_technology' + 'ai_md' set."
       }
     },
 

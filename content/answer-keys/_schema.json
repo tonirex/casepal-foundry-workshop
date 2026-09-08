@@ -74,7 +74,7 @@
       },
       "router_choice": {
         "type": "string",
-        "description": "The model actually used by model-router (e.g. 'gpt-5.4-mini' or 'gpt-5.5') - populated automatically."
+        "description": "The model actually used by model-router (e.g. 'gpt-5-mini' or 'gpt-5') - populated automatically."
       }
     }
   },

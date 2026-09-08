@@ -11,7 +11,7 @@
     {
       "prompt_id": "intake_mdr_0121",
       "validation_type": "A_paste_output",
-      "notes": "Paste the intake JSON for MDR-2026-0121 (SkinLens-AI). Validate priority_flags contains 'novel_technology' AND 'ai_md'. Router should have chosen gpt-5.5.",
+      "notes": "Paste the intake JSON for MDR-2026-0121 (SkinLens-AI). Validate priority_flags contains 'novel_technology' AND 'ai_md'. Router should have chosen gpt-5.",
       "expected_ref": "prompts/test-prompts.json#/prompts/intake_mdr_0121/expected"
     },
     {

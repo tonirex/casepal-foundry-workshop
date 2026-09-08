@@ -52,7 +52,7 @@ workshop:
 
   models:
     teaching_default: "model-router"
-    reasoning: "gpt-5.5"
-    fast: "gpt-5.4-mini"
+    reasoning: "gpt-5"
+    fast: "gpt-5-mini"
     embeddings: "text-embedding-3-small"
     deployment_type: "Global Standard"

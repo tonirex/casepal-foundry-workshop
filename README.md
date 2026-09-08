@@ -161,7 +161,7 @@ must be signed in to Azure **and** have access to that project.
 - Grant each attendee's workshop identity the **Foundry User** role (role ID `53ca6127-db72-4b80-b1b0-d745d6d5456d`)
   on the shared Foundry resource. For a **20-person cohort**, per-attendee assignments are trivial — see
   the RBAC script under `content/admin/`.
-- **Pre-deploy the models**: `model-router` + `gpt-5.5` + `gpt-5.4-mini` + `text-embedding-3-small`.
+- **Pre-deploy the models**: `model-router` + `gpt-5` + `gpt-5-mini` + `text-embedding-3-small`.
 - **Pre-create the App Insights connection** for the full Lab 3 *Traces* tab.
 - Share the project endpoint and model deployment names.
 

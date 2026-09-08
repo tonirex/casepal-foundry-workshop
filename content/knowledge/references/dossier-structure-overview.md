@@ -48,7 +48,7 @@ At intake, CasePal returns:
   "documents_present": ["01-application-form", "02-cover-letter", ...],
   "documents_missing_for_class": ["12-cer"],
   "priority_flags": ["novel_technology", "ai_md", "safety_incident_on_file"],
-  "router_choice": "gpt-5.4-mini|gpt-5.5"
+  "router_choice": "gpt-5-mini|gpt-5"
 }
 ```
 

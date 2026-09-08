@@ -49,7 +49,7 @@ Use plain governance language: identity decides who can build; RBAC decides who 
 ## Backup plans if attendees stall
 
 - **RBAC/sign-in:** pair the participant with a neighbour and let them validate from a shared screen while an operator fixes access.
-- **Model quota:** switch to `gpt-5.4-mini` for low-risk prompts; facilitator runs novel-case demos from the reference agent.
+- **Model quota:** switch to `gpt-5-mini` for low-risk prompts; facilitator runs novel-case demos from the reference agent.
 - **Knowledge index missing:** use the static `content/knowledge` files on screen and have Builder run assertions against expected strings.
 - **Evaluators unavailable:** run the local regulatory-neutrality checks in `lab3_eval.py` and show a pre-captured trace.
 - **MCP endpoint down:** run `python content/assets/mcp-case-management/server.py` locally and use a public tunnel, or show the prepared `CMS-2026-1188` trace.

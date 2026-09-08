@@ -50,7 +50,7 @@ that behaviour from scratch.
 1. Go to **https://ai.azure.com** → open the shared project **`casepal-workshop`**.
 2. **+ New agent**. Name it **`casepal-<yourinitials>`** (e.g. `casepal-wl`). This name is unique
    in the shared project so your agents are easy to find.
-3. **Model:** choose **`model-router`** (or `gpt-5.4-mini` as fallback).
+3. **Model:** choose **`model-router`** (or `gpt-5-mini` as fallback).
 4. Open the **Instructions** box and paste this starter block exactly:
 
 ```text
