@@ -27,10 +27,10 @@
       "device": {
         "type": "object",
         "additionalProperties": false,
-        "required": ["name", "declared_class", "indication_for_use"],
+        "required": ["name", "model", "declared_class", "indication_for_use"],
         "properties": {
           "name": { "type": "string" },
-          "model": { "type": "string" },
+          "model": { "type": "string", "description": "Model designation (empty string if none)." },
           "declared_class": {
             "type": "string",
             "enum": ["A", "B", "C", "D", "needs_reviewer_determination"],
