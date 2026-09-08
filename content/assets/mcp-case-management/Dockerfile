@@ -1,0 +1,12 @@
+# CasePal case-management MCP server — Lab 5, Part A.
+# No authentication: synthetic workshop tool deployed once by the admin.
+FROM python:3.12-slim
+
+WORKDIR /app
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+COPY server.py .
+
+ENV PORT=8000
+EXPOSE 8000
+CMD ["python", "server.py"]

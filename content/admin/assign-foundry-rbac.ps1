@@ -1,6 +1,6 @@
 <#
 .SYNOPSIS
-  Assign Foundry RBAC for the Care Pal workshop (~14 participants + 1 facilitator).
+  Assign Foundry RBAC for the CasePal workshop (20 participants + 1 facilitator).
 
 .DESCRIPTION
   - Foundry User  -> each attendee  (build + run agents; data plane)

@@ -1,31 +1,12 @@
 {
-  "_comment": "SERVER-SIDE ONLY. Load only in app/api/. Lab 4 = Multi-Agent orchestration. Validated from the trace: the compound query must fan out to >=2 specialists and the reply must cover BOTH appointments and diet. prompt_ids resolve against content/prompts/test-prompts.json.",
-  "lab_id": "lab-04",
-  "validation_mode": "paste_output_plus_trace",
-  "schema_ref": "content/answer-keys/_schema.json",
-  "tasks": {
-    "task-1": {
-      "title": "Compound query fans out to >=2 specialists",
-      "validator": "trace_specialists",
-      "prompt_id": "follow_up_and_diet",
-      "expect": {
-        "route": "education_navigation",
-        "min_specialist_calls": 2,
-        "expected_specialists": ["follow_up", "education"],
-        "reply_all_of_regex": [
-          "(?i)(appointment|follow-?up|review|clinic)",
-          "(?i)(diet|fluid|salt|sodium|food)"
-        ]
-      },
-      "trace_required": true,
-      "rationale": "Orchestrator triages, then delegates the LOW-risk compound request to Follow-Up + Education and synthesises one grounded reply. Engineer rail asserts >=2 specialist tool-calls; Navigator/Builder submit a trace screenshot (facilitator confirms the count).",
-      "correct_fun_fact": "Specialisation beats one giant prompt — small focused agents are easier to test, ground, and trust."
+  "_comment": "Server-side validator for Lab 4. Never surface to participants.",
+  "lab": "lab-04",
+  "checkpoints": [
+    {
+      "prompt_id": "compound_query_mdr_0129",
+      "validation_type": "A_paste_output",
+      "notes": "Paste the orchestrator's synthesised reply. Must contain intake + screening + prior_cases + recommendation + draft_communication. Trace must show all four specialist tool calls.",
+      "expected_ref": "prompts/test-prompts.json#/prompts/compound_query_mdr_0129/expected"
     }
-  },
-  "optional_challenge": {
-    "title": "Add a third specialist (Assessment or Enrollment & Linkage)",
-    "validator": "facilitator",
-    "rationale": "Participant shows a third specialist firing on an appropriate question (symptom tracking, or program eligibility). Maps to the customer's 5-agent architecture.",
-    "correct_fun_fact": "You just rebuilt the shape of the customer's real Care Pal — five cooperating agents behind one friendly chat."
-  }
+  ]
 }

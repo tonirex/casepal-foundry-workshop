@@ -1,49 +1,63 @@
-# Care Pal Foundry Day — workshop content
+# CasePal Foundry Day — workshop content
 
-Loadable content for *From Discharge to Recovery: Building Patient-Care Agents with Microsoft Foundry*.
-Authored from `../foundry-day1-workshop-plan.md`. Designed to drop into the Fabric-day workshop
-platform (Next.js + Supabase) with only a config + validator delta.
+Loadable content for *An enterprise Case Review Copilot, built on Microsoft Foundry*. Authored from
+`../foundry-workshop-plan.md`.
 
 ```
 content/
-  config/workshop.yaml                  # platform config (shared project, rails, labs)
-  admin/ADMIN-SETUP.md                  # admin & pre-workshop logistics (RBAC script, models, MCP, dry-run)
-  narrative/rajan.md                    # patient story — one chapter per lab
-  prompts/test-prompts.json             # SINGLE SOURCE OF TRUTH for canned prompts + expected routes
-  labs/lab-00.md ... lab-05.md          # participant-facing, rail-tabbed (navigator/builder/engineer)
-  answer-keys/lab-00.json ... lab-05.json   # SERVER-SIDE ONLY validators (never ship to client)
-  knowledge/healthhub-discharge-pack/   # RAG source for Lab 2 (content owner curates)
-  assets/                               # runnable starter code: notebooks (Builder) + scripts (Engineer)
-    common/carepal_common.py            #   one helper that talks to Foundry Agent Service
-    lab1_triage.* ... lab4_multiagent.* #   paired .py (Engineer) + .ipynb (Builder)
-    mcp-appointments/                   #   Lab 5 Part A — mock appointments MCP server
-    hosted-deploy/                      #   Lab 5 Part B — hosted-agent deploy scaffold (azd / VS Code)
-  demos/foundry-iq-wound-care/          # ⭐ standalone Foundry IQ demo (NOT a core lab)
+  config/workshop.yaml                        # platform config (shared project, rails, labs)
+  admin/ADMIN-SETUP.md                        # admin & pre-workshop logistics (RBAC script, models, MCP)
+  narrative/weiling.md                        # reviewer story — one chapter per lab
+  prompts/test-prompts.json                   # SINGLE SOURCE OF TRUTH for canned prompts + expected outputs
+  labs/lab-00.md ... lab-05.md                # participant-facing, rail-tabbed (Navigator / Builder)
+  answer-keys/lab-00.json ... lab-05.json     # SERVER-SIDE ONLY validators (never ship to client)
+  knowledge/                                  # RAG source for Lab 2 (and reused by Lab 4)
+    README.md                                 #   knowledge pack map + ground-truth answers
+    sop-library/                              #   5 synthetic Agency SOPs
+    prior-cases/                              #   5 completed prior-case decisions (institutional memory)
+    references/                               #   IMDRF / clinical-eval / dossier-structure / SaMD / links
+    fake-registry.md                          #   fake product & applicant registry + collision policy
+  assets/                                     # runnable starter code
+    common/casepal_common.py                  #   one helper that talks to Foundry Agent Service
+    lab1_intake.* ... lab4_multiagent.*       #   notebook (canonical) + auto-derived script
+    mcp-case-management/                      #   Lab 5 Part A — mock case-management MCP server
+    hosted-deploy/                            #   Lab 5 Part B — hosted-agent deploy scaffold
+    case-packages.jsonl                       #   15 synthetic device dossiers used across labs
+    casepal-eval-dataset.{csv,jsonl}          #   Lab 3 evaluation dataset
 ```
 
-## Extra demos (not core labs)
-Standalone, facilitator-led spotlights that sit outside Labs 0–5 (no validator, not in
-`config/workshop.yaml`).
-- **[demos/foundry-iq-wound-care/](demos/foundry-iq-wound-care/README.md)** — grounds a wound-care
-  agent on a **Foundry IQ** knowledge base (3 curated `.docx`) so its advice comes only from trusted
-  sources, not the model's own knowledge or the web. Adapts Microsoft Learn exercise 04.
-
-## Portal-only track
-Non-technical participants can stay in the Foundry portal. Screenshot walkthroughs:
-**[labs/PORTAL-TRACK.md](labs/PORTAL-TRACK.md)** (`lab-00-portal.md` … `lab-05-portal.md`).
-
 ## How the pieces fit
-- **Each lab** states one shared **objective** + **validation checkpoint**, then three **rails** to get there.
-- **Validators** live in `answer-keys/` and reference `prompts/test-prompts.json` by `prompt_id`.
-  Two validator types (see plan §9): **A** paste-the-output (all rails), **B** endpoint harness (engineer/hosted).
-- **Enums** (`intent` / `risk_level` / `route`) are defined once in `lab-01.md` and `test-prompts.json` — keep them in sync.
 
-## Security (inherited from the Fabric day)
-- `answer-keys/*.json` load **only** inside `app/api/` server routes. Never import in client components,
-  return in API responses, or place under `/public/`.
-- Run the platform's `validate-keys` script (must exit 0) before go-live.
+- **Each lab** exercises at least two of the ten agentic patterns explicitly named in the root README.
+- **Each lab** states one shared **objective** + **validation checkpoint**, then two **rails** to get there.
+- **Validators** live in `answer-keys/` and reference `prompts/test-prompts.json` by `prompt_id`.
+- **Enums** are defined once in `answer-keys/_schema.json` and `prompts/test-prompts.json` — keep them in sync.
+- **Knowledge ground truths** are enumerated in `knowledge/README.md` so Lab 2 answer keys can be validated
+  automatically.
+
+## Two rails only
+
+The earlier three-rail split collapsed to two for CasePal:
+- 🟢 **Navigator** — no-code, Foundry portal. For CIOs, IT leaders, and non-coding attendees.
+- 🔵 **Builder** — canonical Jupyter notebooks. `.py` scripts are auto-derived via `jupyter nbconvert`
+  and shipped as a convenience for SIs who prefer scripts, but they are *not* hand-maintained separately.
+
+## Security
+
+- `answer-keys/*.json` load **only** inside server-side validator code. Never import in client
+  components, return in API responses, or place under a public path.
+- Run any validator script (must exit 0) before go-live.
+
+## Synthetic-data guarantee
+
+Every product name, applicant, dossier, MAH, and case ID is invented. See
+[`knowledge/fake-registry.md`](knowledge/fake-registry.md).
 
 ## Status
-Draft v0.2 — labs, answer keys, and **starter assets** (Builder notebooks + Engineer scripts +
-mock MCP server + hosted-deploy scaffold) authored and syntax-verified. Pending: per-lab
-troubleshooting KB, the curated HealthHub files, and a live end-to-end run against a Foundry tenant.
+
+**Draft** — reskinned from an earlier workshop and further broadened from a pharmacovigilance
+scenario to a generic case-review scenario. Content substitution complete; per-lab troubleshooting KB,
+portal walkthroughs (`lab-0N-portal.md`), and end-to-end live-run against a Foundry tenant remaining. See
+the root `foundry-workshop-plan.md` for the facilitator run-of-show and the session `plan.md` for the reskin
+task list.
+

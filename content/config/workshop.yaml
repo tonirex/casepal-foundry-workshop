@@ -1,57 +1,58 @@
 # content/config/workshop.yaml
-# Care Pal Foundry Day — workshop configuration.
-# Reuses the Fabric-day workshop platform; only content + a few flags differ.
+# CasePal Foundry Workshop configuration.
 workshop:
-  name: "From Discharge to Recovery — NTFGH Foundry Day"
-  date: "2026-07-XX"            # confirm with NTFGH
-  access_code: "CAREPAL26"
-  facilitator_email: "antonia.chen@microsoft.com"
+  name: "CasePal Foundry Workshop"
+  date: "2026-09-XX"
+  access_code: "CASEPAL26"
+  facilitator_email: "facilitator@example.test"
 
-  industry: healthcare-agents  # reuse healthcare palette; new key for agent-day copy
-  default_theme: system        # light | dark | system
+  industry: case-review-agents
+  default_theme: system
 
   branding:
-    hospital_name: "Ng Teng Fong General Hospital"
-    foundry_project: "ntfgh-carepal-workshop"   # single SHARED project for the room
+    organisation_name: "the Agency"
+    foundry_project: "casepal-workshop"
 
-  # --- Agent-workshop specific flags (new vs Fabric day) ---
-  rails_enabled: true          # show per-task rail tabs: navigator | builder | engineer
-  default_rail: navigator      # safest default for a mixed room
-  agent_validation: true       # validators may probe an agent endpoint (Type B, see plan section 9)
-  agent_naming_convention: "carepal-<initials>"   # collision-free names in the shared project
-
+  rails_enabled: true
+  default_rail: navigator
+  rails: [navigator, builder]
+  agent_validation: true
+  agent_naming_convention: "casepal-<initials>"
+  cohort_size: 20
   stuck_threshold_attempts: 3
 
   labs:
     - id: lab-00
-      title: "Hello, Care Pal"
+      title: "Hello, CasePal"
       is_active: false
-      tiers: [navigator, builder, engineer]
-      required_rails: [navigator]        # everyone does at least navigator
+      tiers: [navigator, builder]
+      required_rails: [navigator]
     - id: lab-01
-      title: "Triage Agent"
+      title: "Intake & Extraction"
       is_active: false
-      tiers: [navigator, builder, engineer]
+      tiers: [navigator, builder]
     - id: lab-02
-      title: "Knowledge & Grounding"
+      title: "Knowledge & Institutional Memory"
       is_active: false
-      tiers: [navigator, builder, engineer]
+      tiers: [navigator, builder]
     - id: lab-03
       title: "Govern & Observe"
       is_active: false
-      tiers: [navigator, builder, engineer]
+      tiers: [navigator, builder]
     - id: lab-04
-      title: "Multi-Agent Care Pal"
+      title: "Multi-Agent CasePal"
       is_active: false
-      tiers: [navigator, builder, engineer]
+      tiers: [navigator, builder]
     - id: lab-05
       title: "Extend & Deploy"
       is_active: false
-      tiers: [engineer]                  # demo-for-all, hands-on for engineers
-      fallback_demo_only: true           # protects the one-day timebox
-      optional_channel_stretch: true     # WhatsApp/Telegram only if time remains
+      tiers: [builder]
+      fallback_demo_only: true
+      publish_demo_only: true
 
   models:
-    teaching_default: "model-router"   # never stall on model choice
-    customer_production: "gpt-5.4-mini"
+    teaching_default: "model-router"
+    reasoning: "gpt-5.5"
+    fast: "gpt-5.4-mini"
+    embeddings: "text-embedding-3-small"
     deployment_type: "Global Standard"

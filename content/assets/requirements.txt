@@ -1,4 +1,4 @@
-# Care Pal workshop — Python dependencies (Builder + Engineer rails)
+# CasePal workshop — Python dependencies (Builder rail)
 # Targets the CURRENT Microsoft Foundry agents API (new agents, azure-ai-projects 2.x).
 # This is the same backend the Foundry portal drives — not the classic Assistants API.
 
@@ -9,5 +9,6 @@ azure-ai-evaluation>=1.0.0      # Lab 3 only — safety / quality evaluators
 python-dotenv>=1.0.0            # load a local .env
 pydantic>=2.0.0                 # optional — define structured-output schemas as models
 
-# Lab 4 (Engineer) — code-first multi-agent, sequential orchestration:
+# Lab 4 — optional code-first multi-agent orchestration:
 agent-framework>=1.9.0          # Microsoft Agent Framework (FoundryChatClient + SequentialBuilder)
+

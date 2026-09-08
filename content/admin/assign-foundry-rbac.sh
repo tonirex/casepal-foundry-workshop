@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Assign Foundry RBAC for the Care Pal workshop (~14 participants + 1 facilitator).
+# Assign Foundry RBAC for the CasePal workshop (20 participants + 1 facilitator).
 #   Foundry User            -> each attendee   (build + run agents; data plane)
 #   Foundry Project Manager -> facilitator     (can Publish the Lab 5B hosted agent)
 # Uses role IDs (not names) — the Foundry roles were recently renamed

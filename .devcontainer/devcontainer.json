@@ -1,26 +1,14 @@
 {
-  "name": "Care Pal Foundry Workshop",
-  // x64 Linux base image. This is intentional: it lets azure-ai-evaluation,
-  // pandas, etc. install cleanly (they have no Windows-ARM64 wheels), so the
-  // Lab 3 safety/quality evaluators actually run for everyone.
+  "name": "CasePal Foundry Workshop",
   "image": "mcr.microsoft.com/devcontainers/python:3.11-bookworm",
-
   "features": {
-    // Gives every participant `az` so they can run `az login --use-device-code`.
     "ghcr.io/devcontainers/features/azure-cli:1": {}
   },
-
-  // Linux already defaults to UTF-8, but pin it so notebook/script emoji never
-  // crash a participant's terminal (this bit us on Windows cp1252).
   "containerEnv": {
     "PYTHONIOENCODING": "utf-8",
     "FOUNDRY_MODEL_NAME": "model-router"
   },
-
-  // Install both rails' dependencies once, at container build time, so the room
-  // is not waiting on pip. Includes azure-ai-evaluation for Lab 3.
   "postCreateCommand": "python -m pip install --upgrade pip && pip install -r content/assets/requirements.txt",
-
   "customizations": {
     "vscode": {
       "extensions": [

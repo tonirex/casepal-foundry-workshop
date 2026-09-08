@@ -1,141 +1,200 @@
-# 🩺 Lab 4 · Multi-Agent Care Pal — Orchestration
+# 🗂️ Lab 4 · Multi-Agent CasePal — Orchestration
 
-**⏱️ 50 min**  ·  **👥 Everyone (builders & engineers go deeper)**  ·  **📊 L300**  ·  **🧩 Multi-agent orchestration, Workflows, Function tools**
+**⏱️ 50 min**  ·  **👥 Everyone (Builder goes deeper)**  ·  **📊 L300**  ·  **🧩 Multi-agent workflows, function tools, agent-to-agent hand-off**
 
 **🧭 You are here:** [Lab 0](lab-00.md) · [Lab 1](lab-01.md) · [Lab 2](lab-02.md) · [Lab 3](lab-03.md) · **▸ Lab 4** · [Lab 5](lab-05.md)  ·  🏠 [Workshop home](../../README.md)
 
 ---
 
-> 🩺 **Mr. Rajan — Chapter 4**
-> Day five, Rajan is steadier. Priya asks two things at once: *"What follow-up appointments does my
-> father need, and what diet should he keep?"* Scheduling and education are different jobs — so the
-> triage agent hands off to specialist agents and stitches their answers into one reply.
+## 🎯 Agentic patterns exercised
 
-## What you'll learn
-One agent doing everything gets brittle. The customer's design uses **five core agents** (Navigation,
-Education, Assessment, Follow-Up, Enrollment). You'll turn your triage agent into an **orchestrator**
-that delegates the LOW-risk path to specialists and synthesises their results — Foundry's
-**connected / multi-agent** pattern.
+- **#2 Evidence-Based Decision Support** — the orchestrator's final output is a `{recommendation, confidence, supporting_evidence[], rationale}` object, not a raw opinion.
+- **#3 Workflow Orchestration** — one agent (orchestrator) coordinates four specialists to deliver a compound answer in one turn.
+- **#9 Collaboration Between Specialists** — role-aware hand-off: each specialist has a narrow scope, tight prompt, and its own guardrails.
+- **Foundry capabilities:** Workflows, function tools, multi-agent tracing.
 
-> **📂 This lab, three ways — pick your rail:**
-> 🟢 **Navigator** (portal, screenshots): **[lab-04-portal.md](lab-04-portal.md)** · 🟡 **Builder** (notebook): **[`lab4_multiagent.ipynb`](../assets/lab4_multiagent.ipynb)** · 🔴 **Engineer** (script): **[`lab4_multiagent.py`](../assets/lab4_multiagent.py)**
+---
 
-> Required today: **Education** + **Follow-Up** (plus your triage orchestrator). Navigation /
-> Assessment / Enrollment are optional extras.
+> 🗂️ **Wei Ling — Chapter 4**
+> Wednesday 11:40 AM. Wei Ling is closing out **MDR-2026-0129** — a **Class B** point-of-care blood analyser (CRP variant). She types:
+>
+> > *"Screen MDR-2026-0129 for completeness, check whether we've reviewed anything similar in the last two years, and draft a query letter to the applicant asking for the missing precision-and-accuracy data for the CRP measurement."*
+>
+> Three jobs, four specialists. CasePal's orchestrator delegates to:
+>
+> - **Extraction** — pulls the intake JSON from the dossier (Lab 1's job, wrapped as a tool).
+> - **Screening** — checks the intake against SOP-01 (completeness) and SOP-03 (clinical evaluation).
+> - **Prior-Case** — searches the institutional-memory store.
+> - **Comms Drafter** — writes the RFI email to the applicant.
+>
+> The orchestrator synthesises one merged reply: **recommendation** (query the applicant), **confidence** (0.72), **supporting evidence** (SOP-01 §3.2 requires precision data for Class B; the dossier does not include it; prior case MDR-2026-0122 had this data), and a **draft RFI email** Wei Ling can review and send. The trace shows every specialist call.
+
+One agent doing everything gets brittle. Foundry's **Workflows** feature makes multi-agent design a first-class citizen.
+
+**📂 This lab, two ways — pick your rail:**
+- 🟢 **Navigator** (portal, no-code) — follow the [🟢 Navigator section](#-navigator--build-the-workflow) below.
+- 🔵 **Builder** (notebook or script) — [`lab4_multiagent.ipynb`](../assets/lab4_multiagent.ipynb) (canonical) or `python content/assets/lab4_multiagent.py`. A concurrent-execution variant lives in `lab4_multiagent_concurrent.py`.
+
+> Required today: **all four specialists** + the orchestrator (reusing your Lab 3 agent).
 
 ## Demo (facilitator, 5 min)
-Send the compound question on a prepared orchestrator → walk the **trace**: orchestrator → Follow-Up
-agent → Education agent → synthesised reply. Point out two specialist calls in one turn.
+
+Send the compound question on a prepared orchestrator → walk the **trace**:
+`orchestrator → Extraction → Screening → Prior-Case → Comms-Drafter → synthesised reply`.
+Point out **four specialist calls in one turn**, all fed back into the orchestrator's final recommendation-with-evidence output.
 
 ---
 
-## 🟢 Navigator — portal
-1. Create two specialist agents (or clone from `carepal-reference`):
-   - **`carepal-<initials>-education`** — reuse your Lab 2 grounded agent (it already cites HealthHub).
-   - **`carepal-<initials>-followup`** — Instructions: *"You schedule check-ins, suggest follow-up
-     appointment types after discharge, and collect symptom responses. You do not diagnose."*
-2. Connect them with the portal's **multi-agent Workflow** (Agents → **Workflows**): set your
-   **triage** agent as the entry point and wire **Education** and **Follow-Up** as specialist nodes.
-   *(Connected Agents is retired in the new API — **Workflows** is the current no-code multi-agent
-   path; your facilitator demos the exact clicks.)*
-3. Update the triage Instructions with the orchestration rule:
+## Specialists
+
+| Specialist | Job | Key rules |
+|---|---|---|
+| **Orchestrator** (reuses your Lab 3 agent) | Decide which specialists to call; synthesise their outputs into one recommendation | Adds an orchestration block on top of Lab 3 rules |
+| **Extraction** | Given a raw dossier, return the Lab 1 intake JSON | Same schema as Lab 1 |
+| **Screening** | Given an intake JSON, check against SOP-01 (completeness) and SOP-03 (clinical evaluation adequacy for the declared class); return `{gaps[], sop_citations[], severity}` | Read-only over the SOP index; never issues a rejection recommendation |
+| **Prior-Case** | Given `(applicant, device_category, declared_class)`, search the prior-case store; return `{count, sample_case_ids[], similarity_note}` | Never invents case IDs; if count is 0, says so |
+| **Comms Drafter** | Given intake + gaps, draft a query letter (RFI) per SOP-05 style | Never makes claims, never signals a regulatory decision, always ends with "draft for reviewer to review before sending" |
+
+The orchestrator produces:
+
+```json
+{
+  "intake": { ...Lab 1 shape... },
+  "screening": { "gaps": [...], "sop_citations": [...], "severity": "..." },
+  "prior_cases": { "count": <int>, "sample_case_ids": [...], "similarity_note": "..." },
+  "recommendation": {
+    "recommendation": "accept | accept_with_condition | query | reject | needs_review",
+    "confidence": 0.72,
+    "supporting_evidence": ["sop-01 §3.2 (precision data required)", "prior case MDR-2026-0122 (same applicant, complete)"],
+    "rationale": "One-paragraph plain-English."
+  },
+  "draft_communication": "Subject: [MDR-2026-0129] Request for information\n\nDear ..."
+}
+```
+
+---
+
+## 🟢 Navigator — build the workflow
+
+1. Create the four specialist agents (or clone from `casepal-reference-*`):
+
+   **`casepal-<initials>-extraction`** — reuses Lab 1's intake agent verbatim (rename the copy).
+
+   **`casepal-<initials>-screening`** — Screening agent:
+   ```text
+   You are the CasePal Screening agent. Given an intake JSON (Lab 1 shape) and the SOP index,
+   check the intake against:
+   - SOP-01 (completeness for declared class)
+   - SOP-03 (clinical evaluation adequacy for declared class)
+   
+   Return a JSON object:
+     { "gaps": [<one line each>], "sop_citations": [<sop id + section>], "severity": "low" | "medium" | "high" }
+   
+   You never make regulatory statements. You never recommend accept/reject. Gaps are FACTUAL
+   observations against SOPs, not opinions.
+   ```
+
+   **`casepal-<initials>-prior-case`** — Prior-Case agent:
+   ```text
+   You are the CasePal Prior-Case agent. Given (applicant, device_category, declared_class),
+   search the prior-case store for similar prior submissions per SOP-04.
+   
+   Return a JSON object:
+     { "count": <int>, "sample_case_ids": [<up to 5 case IDs>], "similarity_note": <one sentence> }
+   
+   You never make regulatory statements. You never invent case IDs. If count is 0, say so.
+   ```
+
+   **`casepal-<initials>-comms`** — Comms Drafter:
+   ```text
+   You are the CasePal Comms Drafter. Given an intake JSON + a list of gaps, draft a Request-
+   For-Information (RFI) email to the applicant per SOP-05.
+   
+   Structure per SOP-05: subject line "[<case_id>] Request for information", greeting, one-
+   sentence case reference paragraph, numbered questions (each citing the SOP for the
+   requirement), 30-day deadline, sign-off placeholder, footer.
+   
+   Never make claims about causality. Never signal a regulatory decision. Always end with
+   "This is a draft for reviewer review before sending."
+   ```
+
+2. Connect them with the portal's **Workflows** feature (**Agents → Workflows**). Wire:
+   - **Orchestrator** (`casepal-<initials>-knowledge`) as the entry point.
+   - Four specialist nodes.
+   - Route: for LOW-severity gaps + prior-similar hits, recommendation trends `accept` or `accept_with_condition`; for HIGH severity or ≥2 gaps, `query`; for `needs_reviewer_determination` intake, `needs_review`.
+
+3. Update the orchestrator Instructions with the delegation rule:
 
 ```text
-You are Care Pal's orchestrator. Triage every message first (intent, risk_level, route).
-For LOW-risk paths, delegate and then synthesise ONE combined reply:
-- education / self-care content   -> Education agent
-- follow-up scheduling, check-ins, symptom tracking -> Follow-Up agent
-- service navigation / next steps  -> Navigation agent (bonus)
-Call only the specialists needed. For medium/high risk, do NOT delegate — route to timely_review or
-immediate_escalation as before. Return the same triage JSON; put the synthesised answer in reply and
-merge any source_labels / source_urls from the specialists.
+You are the CasePal orchestrator. On every case:
+1. Call Extraction first (always) to get the intake JSON.
+2. Call Screening (always) to identify gaps against SOP-01 + SOP-03.
+3. Call Prior-Case (always) to check institutional memory.
+4. If the user asked for a communication draft AND Screening returned gaps, call Comms
+   Drafter with (intake, gaps) to produce the RFI.
+5. Synthesise ONE JSON reply as specified in the schema, with a confidence 0.0–1.0
+   reflecting: (a) how many required documents were present, (b) whether the prior-case
+   hit corroborates or contradicts the recommendation, (c) how clear-cut the class
+   determination is.
+6. For HIGH-risk or regulatory-decision requests, apply Lab 3 guardrails and escalate
+   instead of delegating.
 ```
 
-4. **Chat** → send **`What follow-up appointments does my father need after heart failure, and what
-   diet should he keep?`** → confirm the reply covers **both** appointments **and** diet (grounded).
-5. Open the **trace** and confirm **both** specialists were called.
-
-## 🟡 Builder — notebook
-Open **[`lab4_multiagent.ipynb`](../assets/lab4_multiagent.ipynb)** and run it top to bottom — the markdown cells explain the orchestrator
-+ two specialists, the function-tool loop, and a "three ways to orchestrate" comparison. It defines the
-agents, exposes each specialist as a **function tool** the orchestrator calls (delegation), runs the
-compound query, **logs each hand-off**, and prints the synthesised reply and the tool-call chain.
-
-**Under the hood:** the specialists are exposed with `function_tool(...)` (a `FunctionTool` on the
-orchestrator's definition). `run_with_trace(...)` runs the model, catches each `function_call` Foundry
-emits, invokes the matching specialist, and feeds the result back with `previous_response_id` until the
-orchestrator returns one merged JSON.
-
-📚 **Docs:** [Function calling / tools](https://learn.microsoft.com/en-us/azure/ai-foundry/agents/how-to/tools/function-calling) ·
-[Connected agents (multi-agent)](https://learn.microsoft.com/en-us/azure/ai-foundry/agents/how-to/connected-agents) ·
-samples: [`sample_agent_function_tool.py`](https://github.com/Azure/azure-sdk-for-python/blob/main/sdk/ai/azure-ai-projects/samples/agents/tools/sample_agent_function_tool.py), [`sample_workflow_multi_agent.py`](https://github.com/Azure/azure-sdk-for-python/blob/main/sdk/ai/azure-ai-projects/samples/agents/sample_workflow_multi_agent.py)
-
-## 🔴 Engineer — SDK
-Run **[`lab4_multiagent.py`](../assets/lab4_multiagent.py)** and fill the `# 👉` lines. The goal: wire
-**three agents** into a **sequential pipeline** with the **Microsoft Agent Framework**
-(`SequentialBuilder`) so the compound question flows `triage → education → follow-up`, then `assert`
-that **both specialists** contributed to the collected outputs.
-
-This rail follows Microsoft Learn's **[Develop a multi-agent solution with Microsoft Agent
-Framework](https://microsoftlearning.github.io/mslearn-ai-agents/Instructions/Exercises/08-agent-framework-multi-agents.html)**
-(Summarizer → Classifier → Action), applied to Care Pal. It needs the `agent-framework` package
-(`pip install -r requirements.txt`) and `az login`.
-
-**The SDK flow:**
-1. **Create the chat client** — `FoundryChatClient(project_endpoint=…, model=…, credential=AzureCliCredential())`
-   connects the Agent Framework to your Foundry project.
-2. **Create three agents** — `chat_client.as_agent(name=…, instructions=…)` for `triage`, `education`
-   and `followup`. These are in-process agents (no server-side versions to clean up afterwards).
-3. **Build + run the pipeline** — `SequentialBuilder(participants=[…], output_from="all").build()` runs
-   the agents **in order over one shared conversation**. `output_from="all"` collects every agent's
-   message (not just the last), and `result.get_outputs()` returns them.
-
-```python
-# three agents run in order, sharing the conversation; output_from="all" keeps every reply
-workflow = SequentialBuilder(
-    participants=[triage_agent, education_agent, followup_agent],
-    output_from="all",
-).build()
-result = await workflow.run(text_of("follow_up_and_diet"))
-outputs = result.get_outputs()
-seen = [m.author_name for r in outputs for m in r.messages]
-assert {"education", "followup"} <= set(seen), seen   # both specialists contributed
-```
-> **Why sequential (not tools)?** No hand-written function-call loop and no orchestrator prompt — the
-> builder wires the chain and passes the shared conversation between agents. Each agent sees the prior
-> replies and adds its piece: triage classifies, education covers diet, follow-up covers appointments.
-> **Go further:** swap `SequentialBuilder` for `ConcurrentBuilder` (specialists answer in parallel, then
-> aggregate) or a Handoff / Magentic pattern for dynamic routing.
-
-📚 **Docs:** [Microsoft Agent Framework](https://learn.microsoft.com/en-us/agent-framework/) ·
-lab: [08 · multi-agent with Agent Framework](https://microsoftlearning.github.io/mslearn-ai-agents/Instructions/Exercises/08-agent-framework-multi-agents.html) ·
-sample: [`sequential_workflow_as_agent.py`](https://github.com/microsoft/agent-framework/blob/main/python/samples/03-workflows/agents/sequential_workflow_as_agent.py)
+4. **Chat** → send the compound question:
+   ```
+   Screen MDR-2026-0129 for completeness, check whether we've reviewed anything similar
+   in the last two years, and draft a query letter to the applicant asking for the missing
+   precision-and-accuracy data for the CRP measurement.
+   ```
+5. Confirm the reply covers **all four sections** (intake / screening / prior_cases / recommendation) plus the draft communication. Open the **trace** and confirm **all four specialists were called**.
 
 ---
 
-## ✅ Validation
-Paste the orchestrator's reply **and** a screenshot (or `tool_calls` count) from the trace.
-Passes when the compound query invoked **≥2 specialist agents** and the reply addresses both
-appointments and diet.
+## 🔵 Builder — notebook / script
 
-## 🎁 Optional challenge
-Add a **third** specialist — **Assessment** (monitors / tracks symptoms) or **Enrollment & Linkage**
-(explains programs, checks eligibility) — and show it firing on an appropriate question.
+Open **[`lab4_multiagent.ipynb`](../assets/lab4_multiagent.ipynb)** and Run All, or:
 
-## Stuck?
-- Only one specialist fires? Make the routing rule explicit and ensure **both** specialists are
-  attached as connected tools on the orchestrator.
-- Specialists loop or over-call? Add "Call only the specialists needed" and cap with the routing rule.
-- **Sequential run hangs / never finishes?** On the `model-router` deployment, `SequentialBuilder`'s
-  streamed downstream stages can stall (each later agent receives a multi-message conversation with
-  consecutive assistant turns, which the router stalls on in ~30s retry cycles). The SDK rail works
-  around this by sequencing the agents with a small manual loop that passes the running transcript as
-  **one user turn** per stage. The **concurrent** variant (`lab4_multiagent_concurrent.py`) is
-  unaffected — each agent gets the same single question, so the fan-out runs fine as shipped.
+```bash
+cd content/assets
+python lab4_multiagent.py
+```
+
+**Under the hood** — the notebook / script:
+1. Defines the five agents (orchestrator + 4 specialists) via `PromptAgentDefinition`.
+2. Exposes each specialist as a `function_tool(...)` on the orchestrator's definition.
+3. Runs the compound query with `run_with_trace(...)`.
+4. Catches each `function_call` Foundry emits, invokes the matching specialist, feeds the result back with `previous_response_id` until the orchestrator returns one merged JSON.
+5. Prints the tool-call chain and the synthesised reply.
+
+A concurrent variant (`lab4_multiagent_concurrent.py`) shows how to run Screening + Prior-Case + Comms Drafter in parallel via `asyncio.gather(...)` once Extraction returns — the three downstream specialists are independent.
+
+📚 **Docs:** [Function calling / tools](https://learn.microsoft.com/en-us/azure/ai-foundry/agents/how-to/tools/function-calling) · [Connected / multi-agent workflows](https://learn.microsoft.com/en-us/azure/ai-foundry/agents/concepts/workflows)
 
 ---
 
-### 🧭 Where next?
-⬅️ Previous: [Lab 3 · Govern & Observe](lab-03.md) — 🏠 [Workshop flow & rails](../../README.md#how-the-workshop-flows) — Next: [Lab 5 · Extend & Deploy](lab-05.md) ➡️
+## ✅ Checkpoint
 
-> 🟢 **Navigator?** Screenshot walkthrough for this lab: **[lab-04-portal.md](lab-04-portal.md)** · index: [PORTAL-TRACK.md](PORTAL-TRACK.md)
+Paste the orchestrator's synthesised reply for the compound question. The check passes when:
+- The reply contains all five sections: `intake`, `screening`, `prior_cases`, `recommendation`, `draft_communication`.
+- `intake.case_id == "MDR-2026-0129"`.
+- `intake.documents_missing_for_class` includes `"09-precision"`.
+- `prior_cases.sample_case_ids` includes `"MDR-2026-0122"` (the applicant's prior BloodScan-X submission).
+- `recommendation.recommendation == "query"`.
+- `recommendation.supporting_evidence` cites `sop-01` AND references the prior case.
+- `draft_communication` is a plausible, professional RFI that references SOP-01 §3.2 and asks for CRP precision data.
+- Trace shows **all four** specialist tool calls fired.
+
+## 🧯 Troubleshooting
+
+- **Fewer than 4 specialists called?** Orchestrator picked a "shortcut". Tighten the Instructions on when to delegate. Check the trace to see the routing decision.
+- **Specialists' outputs missing from the final reply?** The orchestrator dropped them during synthesis. Ensure the Instructions block enumerates the JSON shape.
+- **Prior-Case invents a case ID?** It ignored the retrieval tool. Re-emphasise the "never invent" rule in its Instructions.
+- **Comms Drafter includes a causality claim or regulatory verdict?** Tighten "no claims" in its Instructions and add an explicit refusal example.
+- **Confidence stuck at 1.0?** The orchestrator isn't reasoning about missing information. Give it examples: *"If precision data is missing on a Class B measurement device, confidence should not exceed 0.75."*
+
+---
+
+## 🧭 Where next?
+
+**Previous:** [Lab 3 · Govern & Observe](lab-03.md)
+**Next:** [Lab 5 · Extend & Deploy](lab-05.md) — After-hours case lodgement with a real MCP tool, plus a hosted-agent deploy demo.

@@ -1,1 +1,1 @@
-"""Care Pal workshop helpers package."""
+"""CasePal workshop helpers package."""

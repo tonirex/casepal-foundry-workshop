@@ -1,9 +1,25 @@
-# Care Pal workshop attendees — one per line.
+# CasePal workshop attendees — one per line.
 # Use the Entra UPN (email) or object ID. Lines starting with # are ignored.
-# Copy this file to attendees.txt and replace with your ~14 real participants.
-# The facilitator is passed separately (gets Foundry Project Manager), not here.
+# Copy this file to attendees.txt and replace all 20 examples.
+# The facilitator is passed separately and receives Foundry Project Manager.
 
-alice@ntfgh.example.com
-bob@ntfgh.example.com
-carol@ntfgh.example.com
-# ...add the rest of the ~14 participants...
+user01@example.test
+user02@example.test
+user03@example.test
+user04@example.test
+user05@example.test
+user06@example.test
+user07@example.test
+user08@example.test
+user09@example.test
+user10@example.test
+user11@example.test
+user12@example.test
+user13@example.test
+user14@example.test
+user15@example.test
+user16@example.test
+user17@example.test
+user18@example.test
+user19@example.test
+user20@example.test

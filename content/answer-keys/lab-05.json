@@ -1,52 +1,18 @@
 {
-  "_comment": "SERVER-SIDE ONLY. Load only in app/api/. Lab 5 = Extend & Deploy. Engineer hands-on; Navigator/Builder do a reflection card. Validator pings the participant's DEPLOYED endpoint and checks a valid grounded triage JSON. Channel stretch is out-of-timebox and droppable. prompt_ids resolve against content/prompts/test-prompts.json.",
-  "lab_id": "lab-05",
-  "validation_mode": "endpoint_probe",
-  "schema_ref": "content/answer-keys/_schema.json",
-  "required_keys": [
-    "intent",
-    "risk_level",
-    "route",
-    "reply",
-    "source_labels",
-    "source_urls",
-    "clarifying_questions"
-  ],
-  "tasks": {
-    "task-1": {
-      "title": "Deployed hosted agent returns a valid grounded triage JSON",
-      "validator": "endpoint_probe",
-      "prompt_id": "diet_question",
-      "probe_input": "What diet should my father follow after heart failure?",
-      "expect": {
-        "valid_schema": true,
-        "route": "education_navigation",
-        "source_urls_min": 1,
-        "source_url_host_allowlist": ["healthhub.sg", "www.healthhub.sg"]
-      },
-      "submission": "hosted agent endpoint or agent id (+ key if required)",
-      "rationale": "Confirms Care Pal runs as a managed hosted agent (not a playground tab) and still produces the grounded, structured behaviour built across Labs 1-2.",
-      "correct_fun_fact": "A hosted agent is the same brain with a front door — now anything with the endpoint can reach it."
+  "_comment": "Server-side validator for Lab 5. Never surface to participants.",
+  "lab": "lab-05",
+  "checkpoints": [
+    {
+      "prompt_id": "mcp_lodge_case",
+      "validation_type": "A_paste_output",
+      "notes": "Paste the returned case_id. Must match pattern CMS-2026-<digits>. Trace must show create_case tool call AND approval step.",
+      "expected_ref": "prompts/test-prompts.json#/prompts/mcp_lodge_case/expected"
+    },
+    {
+      "prompt_id": "mcp_list_open",
+      "validation_type": "A_paste_output",
+      "notes": "Paste the list output. Must include the just-created case.",
+      "expected_ref": "prompts/test-prompts.json#/prompts/mcp_list_open/expected"
     }
-  },
-  "reflection": {
-    "title": "Navigator / Builder reflection card",
-    "validator": "facilitator",
-    "questions": [
-      "In your own words, what does MCP give an agent?",
-      "Why deploy a hosted agent instead of using the playground?",
-      "Name one Care Pal task you would give a real tool.",
-      "What kind of action should always require human approval?",
-      "Rate this session 1-5."
-    ],
-    "rationale": "Keeps non-engineers engaged during the deploy demo without forcing them through the SDK."
-  },
-  "stretch": {
-    "title": "Connect a channel (WhatsApp / Telegram sandbox)",
-    "validator": "facilitator",
-    "out_of_timebox": true,
-    "droppable": true,
-    "rationale": "Optional closing flourish — surface the hosted agent on a sandbox channel so a phone in the room can chat to it. Skipping costs nothing.",
-    "correct_fun_fact": "The channel is the last mile — the hard part (a safe, grounded, deployed agent) is already done."
-  }
+  ]
 }

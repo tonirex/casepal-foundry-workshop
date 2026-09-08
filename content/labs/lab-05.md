@@ -1,87 +1,135 @@
-# 🩺 Lab 5 · Extend & Deploy — MCP Tool + Hosted Agent
+# 🧪 Lab 5 · Extend & Deploy — MCP + Hosted Publish
 
-**⏱️ 30 min**  ·  **👥 Engineers hands-on; everyone watches**  ·  **📊 L300**  ·  **🧩 MCP tools, Human-in-the-loop approval, Hosted agents, Deployment (azd / VS Code Toolkit)**
+**⏱️ 50 min**  ·  **👥 Builder hands-on Part A; facilitator demo Part B**  ·  **📊 L300**  ·  **🧩 MCP tool integration, hosted-agent deploy**
 
 **🧭 You are here:** [Lab 0](lab-00.md) · [Lab 1](lab-01.md) · [Lab 2](lab-02.md) · [Lab 3](lab-03.md) · [Lab 4](lab-04.md) · **▸ Lab 5**  ·  🏠 [Workshop home](../../README.md)
 
 ---
 
-> 🩺 **Mr. Rajan — Chapter 5**
-> A week in, Care Pal needs to do something real — check an actual follow-up appointment slot — and
-> be reachable at any hour, not just in a playground tab. The team gives it a tool (via MCP) and
-> deploys it as a hosted agent.
+> 🧪 **Wei Ling — Chapter 5**
+> Thursday 6:20 PM. The queue is quiet. Wei Ling has a straightforward "accept with condition" recommendation on **MDR-2026-0135** — a variation of a previously-registered device — that must be lodged into the fictional Case Management System tonight, before her sign-off deadline. The intake team have gone home.
+>
+> She asks CasePal:
+>
+> *"Lodge MDR-2026-0135 to case management as 'accept with condition', priority medium, follow-up owner 'wl@agency-demo.test'. Condition text: MAH to submit annual clinical follow-up report on the spinal-fusion indication for three years post-registration."*
+>
+> Now CasePal must call a **real** tool — the mock **case-management MCP server** — with an approval
+> step (Wei Ling still confirms before write). And because this needs to work at any hour, the agent
+> has been **hosted-published** so it's always on.
 
-## Format note (protects the one-day timebox)
-This lab is **demo-for-everyone, hands-on for the 🔴 Engineer track.** Navigator/Builder participants
-watch, then complete a short reflection card. Engineers run Parts A & B.
+**📂 This lab, two parts:**
+- **Part A** — connect the MCP tool. 🔵 **Builder hands-on** (portal + code). 🟢 Navigator watches the demo.
+- **Part B** — hosted publish. 👀 **Facilitator demo only** (RBAC — Foundry User cannot Publish).
 
-## What you'll learn
-Two production muscles: giving an agent a **real tool** through the open **Model Context Protocol
-(MCP)** with human approval, and **deploying** Care Pal as a **hosted agent** so it runs as a managed
-service instead of a playground session.
+## Demo (facilitator, 5 min)
 
-> **📂 This lab's resources:**
-> 🟢 **Navigator/Builder** (portal, screenshots): **[lab-05-portal.md](lab-05-portal.md)** · 🔴 **Engineer** (hands-on): **[mcp-appointments/](../assets/mcp-appointments/README.md)** (Part A) + **[hosted-deploy/](../assets/hosted-deploy/README.md)** (Part B)
-
----
-
-## Part A — Add a tool via MCP (🔴 hands-on, ~10 min)
-Connect the provided mock **appointments MCP** server so Care Pal can look up and *propose* a
-follow-up slot — with **human-in-the-loop approval** before it "books".
-
-1. The admin pre-deploys the mock MCP once (no auth, synthetic) — `mcp-appointments/deploy-mcp.ps1`
-   prints a public `https://…/mcp` URL. To run it yourself instead: `python mcp-appointments/server.py`
-   + a tunnel (README has both paths).
-2. Attach it to your agent as an **MCP tool** (portal **Tools → Custom → MCP** — set **Authentication =
-   Unauthenticated** since the mock server needs no auth; or SDK `MCPTool(server_label, server_url, require_approval)`).
-3. Set **`require_approval="always"`** (portal: keep **Never auto-approve tools**) so the agent must ask before calling `book_appointment`.
-4. Ask: *"Can you arrange my father's heart-failure follow-up next week?"* → approve the call →
-   confirm it returns a proposed slot.
-
-*(Pattern: azure-ai-projects 2.x → `samples/agents/tools/sample_agent_mcp.py`.)*
-
-📚 **Docs:** [Model Context Protocol (MCP) tool](https://learn.microsoft.com/en-us/azure/ai-foundry/agents/how-to/tools/model-context-protocol) ·
-[MCP specification](https://modelcontextprotocol.io/) ·
-sample: [`sample_agent_mcp.py`](https://github.com/Azure/azure-sdk-for-python/blob/main/sdk/ai/azure-ai-projects/samples/agents/tools/sample_agent_mcp.py)
-
-## Part B — Deploy a hosted agent (🔴 hands-on, ~15 min)
-Deploy Care Pal to **Foundry Agent Service** as a hosted agent.
-
-- **Option 1 — VS Code Foundry Toolkit:** sidebar → **Deploy to Microsoft Foundry** → pick the
-  shared project → deploy as **Code (Remote)**. *(Ref: VS Code "Create and deploy a hosted agent".)*
-- **Option 2 — azd:** from the provided scaffold, `azd up`.
-
-Then call the deployed agent from the **Agent Inspector / Call agent** and confirm it returns a valid
-triage JSON. *(Pattern: Foundry-Agent-Lab → `hosted-demo`; agentic-ai-immersion → Deployment / azd.)*
-
-📚 **Docs:** [What is Foundry Agent Service?](https://learn.microsoft.com/en-us/azure/ai-foundry/agents/overview) ·
-[Azure Developer CLI (`azd`)](https://learn.microsoft.com/en-us/azure/developer/azure-developer-cli/) ·
-[`azd up`](https://learn.microsoft.com/en-us/azure/developer/azure-developer-cli/reference#azd-up)
+Show the mock case-management MCP server running (Azure Container Apps). In a fresh chat, send Wei Ling's
+lodgement request → CasePal picks the MCP tool, prompts for **approval before write**, Wei Ling
+confirms, MCP returns `CMS-2026-1188`. Then show the same behaviour from the published hosted agent
+endpoint via `curl`.
 
 ---
 
-## ✅ Validation
-Submit your **hosted agent endpoint or agent ID** (+ key if required). The platform pings it with
-**"What diet should my father follow after heart failure?"** and checks the response is **valid triage
-JSON** (7 keys) with a `healthhub.sg` citation.
+## Part A — Wire the MCP tool
 
-> Navigator/Builder reflection card: *(1)* In your words, what does MCP give
-> an agent? *(2)* Why deploy a hosted agent instead of using the playground? *(3)* One Care Pal task
-> you'd give a real tool. *(4)* What should always require human approval? *(5)* Rate this session 1–5.
+### The mock case-management server
 
-## ⭐ Optional stretch — connect a channel (demo only, if time remains)
-**Out of the core timebox — skip with no penalty.** Surface the hosted Care Pal on a **WhatsApp or
-Telegram sandbox** so a phone in the room can chat to it, closing the loop to the customer's real
-front-end.
+`content/assets/mcp-case-management/server.py` is a Python **MCP server** that exposes four tools:
 
-## Stuck?
-- MCP tool not appearing? Confirm the server is running and the agent lists it under **Tools**.
-- Deploy fails on dependencies? Use **Code (Remote)** so Azure installs from `requirements.txt`.
-- Short on time? Stop after Part A — Part B can be the closing facilitator demo.
+| Tool | Purpose |
+|---|---|
+| `create_case(report_id, priority, follow_up_owner)` | Create a new case. Returns `{ "case_id": "CMS-2026-<n>", "created_at": <iso> }`. |
+| `get_case(case_id)` | Read a case by ID. |
+| `update_case_status(case_id, status, note)` | Move a case between states (`open` / `awaiting_info` / `escalated` / `closed`). |
+| `list_open_cases(owner)` | List all open cases assigned to an owner. |
+
+The server persists to an in-memory dict (or SQLite if `MCP_PERSIST_PATH` is set) — enough for demo purposes,
+never for production.
+
+**Facilitator setup (already done for you):** deployed to Azure Container Apps via
+`deploy-mcp.sh` (bash) or `deploy-mcp.ps1` (PowerShell). The endpoint URL is on the workshop info sheet.
+
+### 🔵 Builder — connect the tool
+
+1. Reuse your **`casepal-<initials>-knowledge`** (or clone it as `casepal-<initials>-mcp`).
+2. In the portal, open **Tools & Knowledge** → **+ Add MCP tool**.
+3. Enter:
+   - **Server URL**: (facilitator provides — looks like `https://casepal-mcp-<hash>.azurecontainerapps.io`)
+   - **Auth**: **None** for demo (real deployment would use Managed Identity).
+   - **Approval mode**: **Required for writes** — this is the "always confirm before create/update" contract.
+4. Save. Refresh the tool list — you should see `create_case`, `get_case`, `update_case_status`, `list_open_cases`.
+5. Open **Chat**. Send:
+   ```
+   Lodge MDR-2026-0135 to case management as 'accept with condition', priority medium, follow-up owner 'wl@agency-demo.test'. Condition text: MAH to submit annual clinical follow-up report on the spinal-fusion indication for three years post-registration.
+   ```
+6. CasePal should invoke `create_case`, pause for approval, and only proceed when you confirm. On confirm → returns a `case_id`.
+7. Verify:
+   ```
+   Show me all my open cases.
+   ```
+   Should invoke `list_open_cases(owner="wl@agency-demo.test")` and echo the just-created case.
+8. **Copy the case_id from Test 5** — paste to validate.
+
+### Behind the scenes (script rail)
+
+`content/assets/lab1_intake.py` and friends provide the Builder rail. Lab 5's code is in the MCP server itself
+(`mcp-case-management/server.py`) plus an `agent_client.py` script (in `hosted-deploy/src/`) that
+demonstrates calling a hosted CasePal from Python.
+
+📚 **Docs:** [MCP tools in Foundry](https://learn.microsoft.com/en-us/azure/ai-foundry/agents/how-to/tools/mcp) · [Approval workflow for write operations](https://learn.microsoft.com/en-us/azure/ai-foundry/agents/how-to/tools/mcp#approval-workflow)
 
 ---
 
-### 🧭 Where next?
-⬅️ Previous: [Lab 4 · Multi-Agent Care Pal](lab-04.md) — 🏠 [Workshop flow & rails](../../README.md#how-the-workshop-flows) — 🎉 **You've finished the Care Pal build!**
+## Part B — Hosted publish (👀 facilitator demo)
 
-> 🟢 Navigator screenshot version of this demo: **[lab-05-portal.md](lab-05-portal.md)** · all portal labs: [PORTAL-TRACK.md](PORTAL-TRACK.md)
+> [!WARNING]
+> **This part is a facilitator demo, not participant hands-on.** Publishing a hosted agent requires
+> **Foundry Project Manager** at the Foundry resource scope. Workshop participants only have **Foundry
+> User** (RBAC-limited). The facilitator's identity has the extra role.
+
+The facilitator will:
+1. Open `content/assets/hosted-deploy/`.
+2. Run `azd up` (Azure Developer CLI) — provisions an Azure Container Apps hosted-agent endpoint that
+   loads the same `casepal-<initials>-mcp` agent definition.
+3. Show a `curl` call against the hosted endpoint:
+   ```bash
+   curl -X POST "$AGENT_ENDPOINT/chat" \
+     -H "Authorization: Bearer $TOKEN" \
+     -H "Content-Type: application/json" \
+     -d '{"messages":[{"role":"user","content":"Lodge MDR-2026-0135 to case management as accept with condition"}]}'
+   ```
+4. Show the returned case_id **matching** what you got in Part A — same agent, same MCP tool, same store.
+
+The point isn't *publishing* (which you'd wire into a real product yourselves); it's that **once your
+agent works in the portal, it's the same object accessible via API for downstream integration**.
+
+📚 **Docs:** [Hosted agents on Foundry](https://learn.microsoft.com/en-us/azure/ai-foundry/agents/how-to/deploy-hosted)
+
+---
+
+## ✅ Checkpoint
+
+Paste your **case_id** from Part A. The check passes when:
+- The ID matches the pattern `CMS-2026-<digits>`.
+- Calling `get_case(<your_id>)` returns a case with `priority: "medium"` and `follow_up_owner` set to what you provided.
+- Trace shows an **approval step** was surfaced and confirmed before the write.
+
+## 🧯 Troubleshooting
+
+- **MCP tool doesn't appear after Save?** Check the server URL — should end with `/mcp` or an SSE endpoint per the deploy notes. Refresh the tool list.
+- **`create_case` fires without asking for approval?** Approval mode is set to *Auto* instead of *Required for writes*. Toggle it in the tool config.
+- **Server errors on `create_case`?** Check the Container App logs. If `MCP_PERSIST_PATH` is unset the store is in-memory — restarts wipe it.
+- **`list_open_cases` returns empty right after `create_case`?** Owner string mismatch — case-insensitive matching isn't enabled by default in the mock server.
+
+---
+
+## 🎉 End of workshop
+
+**Previous:** [Lab 4 · Multi-Agent CasePal](lab-04.md)
+
+You've built, grounded, governed, orchestrated, and (watched) deployed a real Foundry agent solving a
+real (if synthetic) case-review workflow. If your CIO is in the room, ask them the loudest
+question you've had all day.
+
+Please give the facilitator your feedback form — including whether the pace, depth, and story landed for
+your role. Every dry-run improves the next.

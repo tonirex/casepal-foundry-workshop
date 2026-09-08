@@ -1,39 +1,27 @@
-# Hosted Care Pal — deploy scaffold (Lab 5, Part B)
+# Hosted CasePal — Lab 5 Part B facilitator demo
 
-Deploy Care Pal to **Foundry Agent Service** as a managed **hosted agent** so it runs as a service
-instead of a playground session. This folder is **standalone** — `src/agent.py` doesn't import the
-workshop `common` package, so it can ship on its own.
+This scaffold exposes a small `/chat` API that forwards messages to a CasePal Foundry Agent. It is used after the MCP case-management demo to show that the same agent can be hosted behind an application endpoint.
 
-## Option 1 — VS Code Microsoft Foundry toolkit (recommended)
-1. Install the **Microsoft Foundry** (AI Toolkit) extension in VS Code.
-2. Open this `hosted-deploy/` folder.
-3. Sidebar → **Deploy to Microsoft Foundry** → choose the shared workshop project →
-   deploy as **Code (Remote)** (Azure installs from `src/requirements.txt`).
-4. Reference: https://code.visualstudio.com/docs/intelligentapps/hosted-agents
+> Participants with Foundry User cannot publish hosted agents. Run this demo with the facilitator identity that has Foundry Project Manager.
 
-## Option 2 — azd
+## Local sanity check
+
 ```powershell
-copy .env.example .env      # fill FOUNDRY_PROJECT_ENDPOINT
-azd up
-```
-> `azure.yaml` is a starting point; the toolkit path above is the supported one for hosted agents.
-
-## Run locally first (sanity check)
-```powershell
+copy .env.example .env
 pip install -r src/requirements.txt
 az login
-copy .env.example .env       # fill FOUNDRY_PROJECT_ENDPOINT
-python src/agent.py          # creates the carepal-hosted agent in your project
+python src/agent.py
+curl -X POST http://localhost:8000/chat -H "Content-Type: application/json" -d "{"messages":[{"role":"user","content":"Hi"}]}"
 ```
 
-## ✅ Validate (matches the lab)
-From the **Agent Inspector / Call agent**, send:
-> *What diet should my father follow after heart failure?*
+## Deploy
 
-Pass = a valid **triage JSON** (7 keys) comes back. (Grounding/citations come from the knowledge you
-attach in the portal — Lab 2 — or by adding a file-search tool to `agent.py`.)
+Use the VS Code Microsoft Foundry toolkit or `azd up` from this folder. The service reads:
 
-## ⭐ Optional stretch — connect a channel
-Out of the core timebox and fully droppable: surface this hosted agent on a **WhatsApp/Telegram
-sandbox** so a phone in the room can chat to it. The hard part (a safe, grounded, deployed agent) is
-already done — the channel is just the last mile.
+- `FOUNDRY_PROJECT_ENDPOINT`
+- `FOUNDRY_MODEL_NAME` (default `model-router`)
+- `AGENT_NAME` (default `casepal-hosted`)
+
+## Lab 5 demo prompt
+
+Send the canonical MCP prompt for `MDR-2026-0135`. The hosted service should call the Foundry agent; the agent's MCP tool configuration in Foundry handles approval-before-write and returns a `CMS-2026-<n>` case ID.

@@ -1,164 +1,110 @@
-# Admin & Pre-Workshop Logistics — Care Pal Foundry Day
+# Admin & Pre-Workshop Logistics — CasePal Foundry Workshop
 
-> **Audience:** the operator/admin and lead facilitator. Everything here is done **before**
-> participants arrive. Target cohort: **~14 participants**, one shared Foundry project.
-> Companion docs: facilitator run-of-show in [`../../foundry-day1-workshop-plan.md`](../../foundry-day1-workshop-plan.md) (§11–§13), participant portal guide in [`../labs/PORTAL-TRACK.md`](../labs/PORTAL-TRACK.md).
+> For the operator/admin and lead facilitator. Complete these steps before participants arrive. Target cohort: **20 attendees** in one shared Foundry project.
 
-## Timeline at a glance
+## Timeline
 
-| When | Task | Owner |
-|------|------|-------|
-| **T‑1 week** | Confirm shared Foundry project + quota; collect ~14 attendee UPNs | Admin |
-| **T‑2 days** | Deploy models; run the **RBAC script** (§3); deploy/confirm the MCP server (§5) | Admin |
-| **T‑1 day** | Verify knowledge pack (§6); share repo + Codespaces (§7); **dry-run one lab per rail** (§8) | Facilitator |
-| **Morning of** | Quick checklist (§9): endpoint on screen, MCP URL reachable, models warm | Operator |
-| **After** | Optional teardown (§10) | Admin |
+| When | Task |
+|---|---|
+| T-1 week | Confirm subscription, region, quota, attendee UPNs, and facilitator identity. |
+| T-2 days | Deploy models, assign RBAC for 20 UPNs, create App Insights connection, deploy MCP server. |
+| T-1 day | Ingest the CasePal knowledge pack, run one Navigator and one Builder dry-run. |
+| Morning of | Check endpoint, models, RBAC, knowledge index, traces, and MCP URL. |
 
----
+## Region and project
 
-## 1. Shared Foundry project
+Use a shared Microsoft Foundry project named `casepal-workshop`.
 
-- One **Foundry resource** + one **project** (intended name `ntfgh-carepal-workshop`) on the
-  **New Foundry** experience — simplest for a mixed/non-technical room, single quota to manage.
-- Add the ~14 participants as **Entra guests** or via a **shared workshop login**.
-- Pre-build a read-only **`carepal-reference`** agent participants can clone.
-- Enforce the naming convention **`carepal-<initials>`** so the shared project stays legible.
+- Preferred region: **Sweden Central**.
+- Fallback: **East US** if quota or service availability blocks the preferred region.
+- Share `FOUNDRY_PROJECT_ENDPOINT` with Builder participants.
+- Use `casepal-<initials>` naming so 20 participants can coexist in one project.
 
----
+## Model deployments
 
-## 2. Models (participants can't deploy these)
+Pre-deploy these before the day; attendees with Foundry User cannot deploy models.
 
-Deploy **before** the day — `Foundry User` (the participant role) **cannot** create deployments:
+| Deployment name | Use |
+|---|---|
+| `model-router` | Default for all labs and portal agents. |
+| `gpt-5.5` | Reasoning model for ambiguous or novel cases. |
+| `gpt-5.4-mini` | Fast path for clean intake and routine prompts. |
+| `text-embedding-3-small` | Knowledge indexing for `casepal-knowledge`. |
 
-- `model-router` and `gpt-5.4-mini`, **Global Standard**.
-- Sanity-check **tokens-per-minute** quota for ~14 concurrent users. A 14-person cohort is small,
-  so default TPM is usually ample — confirm in the dry-run and raise only if you hit limits.
+Warm each deployment with one smoke prompt after provisioning.
 
----
+## RBAC for 20 attendees
 
-## 3. ⭐ RBAC — assign roles (the key step)
+Role IDs are used to avoid display-name drift.
 
-Validated against the official [Foundry RBAC docs](https://learn.microsoft.com/azure/foundry/concepts/rbac-foundry).
-The Foundry roles were **renamed** (e.g. *Azure AI User → Foundry User*); IDs are unchanged, so the
-scripts use **role IDs** to survive the rename rollout.
+| Identity | Role | Role ID | Purpose |
+|---|---|---|---|
+| Each attendee | Foundry User | `53ca6127-db72-4b80-b1b0-d745d6d5456d` | Build/run agents and use shared resources. |
+| Lead facilitator | Foundry Project Manager | `eadc314b-1a2d-4efa-be10-5d325db5065e` | Publish the Lab 5 hosted-agent demo. |
 
-**Who gets what:**
+PowerShell:
 
-| Identity | Role | Role ID | Why |
-|----------|------|---------|-----|
-| Each of the ~14 participants | **Foundry User** | `53ca6127-db72-4b80-b1b0-d745d6d5456d` | Build + run agents, file search, eval, inference (data plane) |
-| Lead facilitator | **Foundry Project Manager** | `eadc314b-1a2d-4efa-be10-5d325db5065e` | Can **Publish** the Lab 5 Part B hosted agent (Foundry User can't) |
-| Project's managed identity | **Foundry User** | `53ca6127-…` | Lets the project call Foundry features (per docs "minimum assignments") |
+```powershell
+az login
+.ssign-foundry-rbac.ps1 -ResourceId "<foundry-resource-id>" -AttendeesFile attendees.txt -Facilitator facilitator@example.test
+```
 
-> **What Foundry User *cannot* do** (all handled centrally): **deploy models** (§2),
-> **create connections** (§4), and **publish agents** (Lab 5 Part B → facilitator demo). Everything
-> else across Labs 0–5 is a *data action* it permits. Full per-lab matrix: plan **§12a**.
-
-**Run it** — sign in as someone with **Owner** or **User Access Administrator** on the resource:
+Bash:
 
 ```bash
 az login
-# 1) discover the Foundry resource (account) ID:
-az cognitiveservices account show -n <foundry-account> -g <rg> --query id -o tsv
-# 2) put your ~14 UPNs in attendees.txt (copy attendees.example.txt), then:
-./assign-foundry-rbac.sh "<paste-resource-id>" attendees.txt facilitator@contoso.com
-#   PowerShell:  ./assign-foundry-rbac.ps1 -ResourceId "<id>" -Facilitator facilitator@contoso.com
+./assign-foundry-rbac.sh "<foundry-resource-id>" attendees.txt facilitator@example.test
 ```
 
-**Verify** a participant can build:
+Create `attendees.txt` from `attendees.example.txt` and include 20 UPNs or object IDs. Verify one attendee:
 
 ```bash
-az role assignment list --assignee alice@contoso.com --scope <resource-id> -o table
+az role assignment list --assignee user01@example.test --scope <foundry-resource-id> -o table
 ```
 
-Scripts in this folder: [`assign-foundry-rbac.ps1`](assign-foundry-rbac.ps1) ·
-[`assign-foundry-rbac.sh`](assign-foundry-rbac.sh) · [`attendees.example.txt`](attendees.example.txt).
+## App Insights and tracing
 
----
+Create the Application Insights resource and connect it to the Foundry project before Lab 3. Participants can still run chat without it, but the full Traces tab and evaluator history are strongest with this connection in place. Confirm a guarded prompt produces a trace before the session starts.
 
-## 4. Connections (optional — admin only)
+## Knowledge pack ingestion
 
-`Foundry User` can't create connections, so if a lab needs one, **you** create it (or skip):
+Use the synthetic CasePal artefacts:
 
-- **Lab 2 web search** uses Bing with *"no setup required"* → **no connection needed**. ✅
-- **Lab 3 full *Traces* tab** (history across runs) needs an **Application Insights** connection on
-  the project. It's **optional** — the inline single-run trace works without it. Pre-create the
-  App Insights connection only if you want the full traces history during the eval lab.
+- `content/assets/case-packages.jsonl` — 15 dossier bundles used by Builder scripts.
+- `content/knowledge/sop-library/` — SOPs for completeness, classification, clinical evaluation, prior cases, and RFI drafting.
+- `content/knowledge/prior-cases/` — institutional memory.
+- `content/knowledge/references/` — reference explainers.
+- `content/knowledge/fake-registry.md` — synthetic names registry.
 
----
+Upload `content/knowledge/**` to the grounding container and create/refresh a Foundry IQ index named `casepal-knowledge` using `text-embedding-3-small`. Smoke test: query `CardioFlow` and confirm `case-A2024-042` is in the top results.
 
-## 5. Mock appointments MCP server (Lab 5 Part A)
+## MCP mock case-management server
 
-A no-auth synthetic appointments tool, deployed once and shared as a URL.
+Deploy the Lab 5 server from `content/assets/mcp-case-management/` to Azure Container Apps:
 
-- **Already live (demo instance):**
-  `https://carepal-appointments.delightfulpond-b7635e07.southeastasia.azurecontainerapps.io/mcp`
-  (RG `rg-carepal-mcp`, southeastasia, no auth).
-- **Redeploy / fresh deploy:** from [`../assets/mcp-appointments/`](../assets/mcp-appointments/) run
-  `az login` then `./deploy-mcp.ps1` (or `bash deploy-mcp.sh`). Builds from source on ACR — no local
-  Docker — and prints the `/mcp` URL.
-- **Cost:** 0.5 vCPU / 1 GiB, min 1 replica ≈ **$6 for two weeks**, ~$15 worst-case. Teardown:
-  `az group delete -n rg-carepal-mcp --yes`.
-- **Foundry MCP form has no "None" auth** → choose **Key-based** and paste a throwaway header
-  (`x-demo: workshop`); the server ignores it.
-- **Share the `/mcp` URL** with the room (slide / chat) before Lab 5.
+```powershell
+cd contentssets\mcp-case-management
+.\deploy-mcp.ps1 -Location swedencentral
+```
 
----
+or:
 
-## 6. Knowledge pack (Lab 2 / Lab 4 grounding)
+```bash
+cd content/assets/mcp-case-management
+./deploy-mcp.sh
+```
 
-- `../knowledge/healthhub-discharge-pack/` currently holds **synthetic** HealthHub stand-in docs so
-  the RAG/citation labs work out of the box.
-- ⚠️ **Before go-live:** have a content owner **verify or replace** these with licensed HealthHub
-  exports. They are clearly marked `status: synthetic-workshop-sample` in each file's frontmatter.
+Share the printed `/mcp` URL. In Foundry, configure read tools as no-approval and write tools (`create_case`, `update_case_status`) as approval-required.
 
----
+## Publish limitation
 
-## 7. Code rails — repo & Codespaces (🟡 Builder / 🔴 Engineer)
+Participants receive Foundry User. That role cannot Publish hosted agents. Lab 5 Part B is therefore **facilitator-demo-only** and must be run by the facilitator identity with Foundry Project Manager.
 
-- Repo: **github.com/tonirex/care-pal-foundry-workshop** (private). Add participants who take the
-  Builder/Engineer rails as repo collaborators (or fork into the customer org).
-- They open **Code → Codespaces** → identical x64 env, deps pre-installed (incl. Lab 3 evaluators).
-- In the Codespace they run `az login --use-device-code`, then `cd content/assets && cp .env.example
-  .env` and set `FOUNDRY_PROJECT_ENDPOINT` (share it) + their `INITIALS`.
-- 🟢 **Navigator participants need none of this** — browser + project login only.
+## Dry-run checklist
 
----
-
-## 8. Dry-run (T‑1 day) — do not skip
-
-Run **one lab per rail** end-to-end in the real tenant to catch drift:
-
-- 🟢 Navigator: build Lab 0 agent in the portal; confirm the refusal + a triage answer.
-- 🟡/🔴 Builder/Engineer: in a Codespace, `python content/assets/lab1_triage.py` → expect 3/3 routes;
-  `lab2_rag.py` → expect a `healthhub.sg` citation.
-- Confirm portal feature names haven't drifted: **structured output**, **Workflows (multi-agent)**,
-  **content-safety guardrails**, **evaluators**.
-
----
-
-## 9. Morning-of checklist
-
-- [ ] Project **endpoint** on a slide; MCP **`/mcp`** URL reachable.
-- [ ] Models warm (send one test prompt).
-- [ ] RBAC spot-check: one participant can open the project and create an agent.
-- [ ] `carepal-reference` agent present; naming convention on a slide.
-- [ ] Facilitator account confirmed as **Foundry Project Manager** (for the Lab 5B publish demo).
-
----
-
-## 10. Teardown (after the workshop)
-
-- Tear down the MCP server: `az group delete -n rg-carepal-mcp --yes`.
-- (Optional) remove participant role assignments and the shared project.
-
----
-
-### Reference — role IDs (use IDs, not names, during the rename rollout)
-
-| Role | ID |
-|------|----|
-| Foundry User | `53ca6127-db72-4b80-b1b0-d745d6d5456d` |
-| Foundry Project Manager | `eadc314b-1a2d-4efa-be10-5d325db5065e` |
-| Foundry Account Owner | `e47c6f54-e4a2-4754-9501-8e0985b135e1` |
-| Foundry Owner | `c883944f-8b7b-4483-af10-35834be79c4a` |
+- [ ] `casepal-reference` agent exists and can answer Lab 0 prompts.
+- [ ] `casepal-knowledge` index returns SOP and prior-case citations.
+- [ ] Builder: `python content/assets/lab1_intake.py` starts and can create an agent.
+- [ ] Eval dataset files parse: `casepal-eval-dataset.csv` and `.jsonl`.
+- [ ] MCP `/mcp` URL is reachable and first create on a fresh store returns `CMS-2026-1188`.
+- [ ] Hosted deploy demo has facilitator permissions and a tested curl command.

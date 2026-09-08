@@ -1,11 +1,11 @@
-# azd configuration for the Care Pal hosted agent (Lab 5, Part B).
+# azd configuration for the CasePal hosted agent (Lab 5, Part B).
 # This is a STARTING POINT. The supported, click-through path is the VS Code "Microsoft Foundry"
 # toolkit (see README) — use this file if your team standardises on `azd`.
 #
 # Docs: https://learn.microsoft.com/azure/developer/azure-developer-cli/azd-schema
-name: carepal-hosted-agent
+name: casepal-hosted-agent
 metadata:
-  template: carepal-hosted-agent@0.1
+  template: casepal-hosted-agent@0.1
 
 services:
   agent:

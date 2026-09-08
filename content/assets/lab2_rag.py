@@ -1,62 +1,53 @@
-"""Lab 2 (Engineer) — Knowledge & Grounding (the Education agent).
+"""Lab 2 — CasePal Knowledge & Institutional Memory.
 
-Attach a file-search (RAG) index over the curated HealthHub discharge pack so every education
-answer carries a healthhub.sg citation. Run:  `python lab2_rag.py`
-
-Lab instructions: ../labs/lab-02.md (all three rails) · portal walkthrough: ../labs/lab-02-portal.md
-
-PREREQ: drop the real HealthHub exports into ../knowledge/healthhub-discharge-pack/ first
-(see that folder's README) — otherwise there is nothing to cite.
-
-Reference patterns: Foundry-Agent-Lab -> file-search quickstart;
-azure-ai-projects 2.x -> tools/sample_agent_file_search.py.
+Builds/reuses a vector store from ``content/knowledge`` and validates the canonical
+knowledge prompts: SOP citation, prior-case retrieval, refusal on absence, and SaMD
+classification reference.
 """
 # %%
-import sys
 import pathlib
-_here = (pathlib.Path(globals()["__file__"]).resolve().parent
-         if "__file__" in globals() else pathlib.Path.cwd())
+import re
+import sys
+
+_here = pathlib.Path(globals().get("__file__", pathlib.Path.cwd())).resolve().parent
 if str(_here) not in sys.path:
     sys.path.insert(0, str(_here))
 
 # %%
-import json
-from common.carepal_common import (
-    make_triage_agent,
-    run_and_parse,
+from common.casepal_common import (
+    KNOWLEDGE_INSTRUCTIONS,
     build_vector_store,
-    file_search_tool,
-    text_of,
     cleanup,
-    TRIAGE_INSTRUCTIONS,
+    file_search_tool,
+    make_knowledge_agent,
+    run_text,
+    text_of,
 )
 
-GROUNDING = TRIAGE_INSTRUCTIONS + """
-For education / self-care questions (route "education_navigation"), ground your reply in the attached
-HealthHub knowledge base. Put the article titles in source_labels and their healthhub.sg URLs in
-source_urls. If the knowledge base does not support an answer, say you are not sure and route to
-"timely_review" - do NOT invent sources.
-"""
+PROMPT_IDS = [
+    "grounding_class_c_completeness",
+    "grounding_prior_similar_cardioflow",
+    "grounding_novel_no_prior",
+    "grounding_samd_class",
+]
 
-# %%
+CHECKS = {
+    "grounding_class_c_completeness": lambda s: "sop-01" in s.lower(),
+    "grounding_prior_similar_cardioflow": lambda s: "case-a2024-042" in s.lower(),
+    "grounding_novel_no_prior": lambda s: re.search(r"no prior similar|no analogous", s, re.I) and not re.search(r"case-A2024-\d{3}", s),
+    "grounding_samd_class": lambda s: "samd-basics" in s.lower(),
+}
+
+
 def main():
-    # 👉 Build a vector store from the pack and attach it as a file-search tool.
-    vs_id = build_vector_store("healthhub-discharge-pack")
-    fs = file_search_tool(vs_id)
-    agent = make_triage_agent(
-        instructions=GROUNDING,
-        tools=[fs],
-        structured=True,
-    )
+    vs_id = build_vector_store(".", name="casepal-knowledge")
+    agent = make_knowledge_agent(instructions=KNOWLEDGE_INSTRUCTIONS, tools=[file_search_tool(vs_id)])
     try:
-        out = run_and_parse(agent, text_of("diet_question"))
-        print(json.dumps(out, indent=2))
-        assert out["source_urls"], "expected at least one citation"
-        assert any("healthhub.sg" in u for u in out["source_urls"]), out["source_urls"]
+        for pid in PROMPT_IDS:
+            reply = run_text(agent, text_of(pid))
+            print(f"--- {pid}\n{reply}\n")
+            assert CHECKS[pid](reply), f"{pid} failed validation"
         print("Lab 2 passed ✅")
-
-        # TODO (bonus): send the LiverTone question (prompt id 'unsupported_question') and assert
-        # source_urls is EMPTY and route == 'timely_review' (the safe, no-fabrication behaviour).
     finally:
         cleanup(agent)
 

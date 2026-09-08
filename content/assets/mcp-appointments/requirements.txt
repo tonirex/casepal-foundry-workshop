@@ -1,2 +1,0 @@
-# Mock appointments MCP server (Lab 5, Part A)
-mcp>=1.9.0

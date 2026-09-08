@@ -1,64 +1,112 @@
 {
-  "_comment": "Care Pal canonical structured-output schema. Used as the structured output (text format) from Lab 1 onward. Referenced by content/labs/lab-01.md. Keep enums in sync with content/prompts/test-prompts.json.",
-  "name": "care_pal_triage",
+  "_comment": "CasePal canonical structured-output schema for the Extraction Agent (Lab 1 onwards) and the Recommendation Agent (Lab 4). Referenced by content/labs/lab-01.md. Keep enums in sync with content/prompts/test-prompts.json.",
+  "name": "casepal_case_intake",
   "strict": true,
   "schema": {
     "type": "object",
     "additionalProperties": false,
     "required": [
-      "intent",
-      "risk_level",
-      "route",
-      "reply",
-      "source_labels",
-      "source_urls",
-      "clarifying_questions"
+      "case_id",
+      "applicant",
+      "device",
+      "submission_type",
+      "documents_present",
+      "documents_missing_for_class",
+      "priority_flags",
+      "router_choice"
     ],
     "properties": {
-      "intent": {
+      "case_id": {
         "type": "string",
-        "enum": [
-          "greeting",
-          "unclear",
-          "self_care_education",
-          "symptom_report",
-          "medication_question",
-          "navigation_request",
-          "follow_up",
-          "enrollment_query"
-        ]
+        "description": "Echo of the input case ID (e.g. MDR-2026-0117)."
       },
-      "risk_level": {
+      "applicant": {
         "type": "string",
-        "enum": ["unclear", "low", "medium", "high"]
+        "description": "Manufacturer / MAH / distributor name as submitted."
       },
-      "route": {
+      "device": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["name", "declared_class", "indication_for_use"],
+        "properties": {
+          "name": { "type": "string" },
+          "model": { "type": "string" },
+          "declared_class": {
+            "type": "string",
+            "enum": ["A", "B", "C", "D", "needs_reviewer_determination"],
+            "description": "Risk class per IMDRF (see references/imdrf-risk-classification.md)."
+          },
+          "indication_for_use": { "type": "string" }
+        }
+      },
+      "submission_type": {
         "type": "string",
-        "enum": [
-          "clarification",
-          "education_navigation",
-          "timely_review",
-          "immediate_escalation"
-        ]
+        "enum": ["new", "variation", "renewal"],
+        "description": "Registration submission type."
       },
-      "reply": {
-        "type": "string",
-        "description": "Patient-facing message. Plain, warm, <120 words. Never diagnoses."
-      },
-      "source_labels": {
+      "documents_present": {
         "type": "array",
         "items": { "type": "string" },
-        "description": "Human-readable names of grounded sources actually used. Empty if none."
+        "description": "Document codes present in the dossier (see references/dossier-structure-overview.md for canonical codes)."
       },
-      "source_urls": {
+      "documents_missing_for_class": {
         "type": "array",
         "items": { "type": "string" },
-        "description": "URLs for the sources. MUST be empty when no grounded source supports the reply — never fabricate."
+        "description": "Document codes REQUIRED for the declared class but ABSENT. Compared against SOP-01."
       },
-      "clarifying_questions": {
+      "priority_flags": {
+        "type": "array",
+        "items": {
+          "type": "string",
+          "enum": [
+            "novel_technology",
+            "ai_md",
+            "safety_incident_on_file",
+            "first_from_applicant",
+            "implantable",
+            "class_declaration_borderline",
+            "prior_case_still_open",
+            "prior_rejection_by_applicant",
+            "applicant_requests_regulatory_advice"
+          ]
+        },
+        "description": "Standard reviewer-attention flags."
+      },
+      "router_choice": {
+        "type": "string",
+        "description": "The model actually used by model-router (e.g. 'gpt-5.4-mini' or 'gpt-5.5') - populated automatically."
+      }
+    }
+  },
+  "recommendation_schema": {
+    "_comment": "Used by the Lab 4 orchestrator's synthesised output.",
+    "type": "object",
+    "additionalProperties": false,
+    "required": ["recommendation", "confidence", "supporting_evidence", "rationale"],
+    "properties": {
+      "recommendation": {
+        "type": "string",
+        "enum": ["accept", "accept_with_condition", "query", "reject", "needs_review"],
+        "description": "The recommended action. reject is only used for repeat-cycle failures - see SOP-04. needs_review means CasePal defers to the reviewer without a specific recommendation."
+      },
+      "confidence": {
+        "type": "number",
+        "minimum": 0,
+        "maximum": 1,
+        "description": "How confident CasePal is in the recommendation. Anything below 0.7 must be flagged for reviewer attention."
+      },
+      "supporting_evidence": {
         "type": "array",
         "items": { "type": "string" },
-        "description": "Questions to ask when info is insufficient. Empty unless route = clarification."
+        "description": "Document IDs and SOP references that ground the recommendation. Never invent."
+      },
+      "rationale": {
+        "type": "string",
+        "description": "One-paragraph plain-English rationale. Never contains a binding regulatory statement."
+      },
+      "draft_communication": {
+        "type": "string",
+        "description": "Optional draft RFI or condition letter. Only populated when the Comms Drafter specialist runs."
       }
     }
   }
