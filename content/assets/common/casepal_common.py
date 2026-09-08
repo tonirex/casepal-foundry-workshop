@@ -320,8 +320,35 @@ def agent_reference(agent) -> dict:
 
 
 def run_text(agent, text: str) -> str:
-    resp = get_openai().responses.create(input=text, extra_body={"agent_reference": agent_reference(agent)})
-    return resp.output_text
+    # Retry on transient InternalServerError (500) — Foundry occasionally hiccups
+    # mid-turn; the correct behaviour is to back off and retry, not fail the run.
+    import time as _time
+    last_err = None
+    for attempt in range(5):
+        try:
+            resp = get_openai().responses.create(
+                input=text,
+                extra_body={"agent_reference": agent_reference(agent)},
+            )
+            return resp.output_text
+        except Exception as e:
+            msg = str(e)
+            transient = (
+                "500" in msg
+                or "502" in msg
+                or "503" in msg
+                or "504" in msg
+                or "server had an error" in msg.lower()
+                or "InternalServer" in type(e).__name__
+                or "ServiceUnavailable" in type(e).__name__
+                or "GatewayTimeout" in type(e).__name__
+            )
+            if transient:
+                last_err = e
+                _time.sleep(min(30, 3 * (attempt + 1)))
+                continue
+            raise
+    raise last_err  # exhausted retries
 
 _JSON_RE = re.compile(r"\{.*\}", re.S)
 
@@ -382,6 +409,21 @@ def file_search_tool(vector_store_id):
 
 
 def function_tool(name, description, parameters, strict=True):
+    # OpenAI strict-mode function tools require additionalProperties=false at
+    # the root object schema; the SDK does not inject this automatically.
+    # We only tighten the root — nested object schemas that are meant to
+    # accept free-form data should either supply their own schema or the
+    # call site should pass strict=False.
+    if strict and isinstance(parameters, dict) and parameters.get("type") == "object":
+        parameters = {**parameters, "additionalProperties": False}
+        props = parameters.get("properties") or {}
+        if props:
+            # Strict mode requires every property in required[].
+            required = list(parameters.get("required", []))
+            for prop in props:
+                if prop not in required:
+                    required.append(prop)
+            parameters = {**parameters, "required": required}
     return _models().FunctionTool(name=name, description=description, parameters=parameters, strict=strict)
 
 
