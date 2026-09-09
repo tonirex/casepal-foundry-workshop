@@ -19,14 +19,14 @@
 
 **📂 This lab, two parts:**
 - **Part A** — connect the MCP tool. 🔵 **Builder hands-on** (portal + code). 🟢 Navigator watches the demo.
-- **Part B** — hosted publish. 👀 **Facilitator demo only** (RBAC — Foundry User cannot Publish).
+- **Part B** — Foundry-hosted access. 👀 **Facilitator demo**: prove your agent is callable from any Python process without a separate publish step.
 
 ## Demo (facilitator, 5 min)
 
 Show the mock case-management MCP server running (Azure Container Apps). In a fresh chat, send Wei Ling's
 lodgement request → CasePal picks the MCP tool, prompts for **approval before write**, Wei Ling
-confirms, MCP returns `CMS-2026-1188`. Then show the same behaviour from the published hosted agent
-endpoint via `curl`.
+confirms, MCP returns `CMS-2026-<n>`. Then run `python lab5_call_hosted.py` from a terminal to show the
+same agent responds to programmatic calls — the "hosted" story in Foundry is just this.
 
 ---
 
@@ -146,48 +146,73 @@ agent = project.agents.create_version(
 
 The full script wires the same MCP tool onto an agent, sends Wei Ling's lodgement prompt, catches the `mcp_approval_request` items from the response, submits `mcp_approval_response` for each with `approve=True`, and prints the returned `CMS-2026-<n>` case_id.
 
-**Sample terminal run:**
+**Sample terminal run (Part A · Builder):**
 
-![Terminal-styled transcript: /healthz sanity check, then POST /chat with the lodgement JSON payload, response returned in 20.3s with case_id CMS-2026-1188; ends with 'Hosted endpoint returned CMS-2026-1188 — same behaviour, programmatic access'](screenshots/lab-05/99-curl-hosted-terminal.png)
+![Terminal transcript: casepal-<initials>-mcp built with MCPTool require_approval='always', prompt sent, approval request items captured, mcp_approval_response with approve=True sent back, and the returned CMS-2026-<n> case_id printed](screenshots/lab-05/99-foundry-hosted-terminal.png)
 
 ### Behind the scenes (script rail)
 
-`content/assets/lab1_intake.py` and friends provide the Builder rail. Lab 5's code is in the MCP server itself
-(`mcp-case-management/server.py`) plus an `agent_client.py` script (in `hosted-deploy/src/`) that
-demonstrates calling a hosted CasePal from Python.
+`content/assets/lab5_mcp.py` shows the same Part A behaviour end-to-end (Builder rail). `content/assets/lab5_call_hosted.py` is the Part B facilitator script — proves your agent is callable from any Python process without a separate publish step.
 
 📚 **Docs:** [MCP tools in Foundry](https://learn.microsoft.com/en-us/azure/ai-foundry/agents/how-to/tools/mcp) · [Approval workflow for write operations](https://learn.microsoft.com/en-us/azure/ai-foundry/agents/how-to/tools/mcp#approval-workflow)
 
 ---
 
-## Part B — Hosted publish (👀 facilitator demo)
+## Part B — Foundry-hosted access (👀 facilitator demo)
 
-> [!WARNING]
-> **This part is a facilitator demo, not participant hands-on.** Publishing a hosted agent requires
-> **Foundry Project Manager** at the Foundry resource scope. Workshop participants only have **Foundry
-> User** (RBAC-limited). The facilitator's identity has the extra role.
+> [!NOTE]
+> **This part is a facilitator demo.** Participants can read along; they'll see
+> the same pattern anytime they call any of these agents from a notebook or
+> script.
 
-The facilitator will:
-1. Open `content/assets/hosted-deploy/`.
-2. Run `azd up` (Azure Developer CLI) — provisions an Azure Container Apps hosted-agent endpoint that
-   loads the same `casepal-<initials>-mcp` agent definition.
-3. Show a `curl` call against the hosted endpoint:
-   ```bash
-   curl -X POST "$AGENT_ENDPOINT/chat" \
-     -H "Authorization: Bearer $TOKEN" \
-     -H "Content-Type: application/json" \
-     -d '{"messages":[{"role":"user","content":"Lodge MDR-2026-0135 to case management as accept with condition"}]}'
-   ```
-4. Show the returned case_id **matching** what you got in Part A — same agent, same MCP tool, same store.
+### The claim to demystify
 
-   ![Terminal-styled transcript: /healthz sanity check, then POST /chat with the lodgement JSON payload, response returned in 20.3s with case_id CMS-2026-1188; ends with 'Hosted endpoint returned CMS-2026-1188 — same behaviour, programmatic access'](screenshots/lab-05/99-curl-hosted-terminal.png)
+**Every agent you created with `PromptAgentDefinition` in Foundry is already Foundry-hosted.** There's no separate "publish" step, no App Service, no ACA endpoint to stand up. Once the agent exists in the project, it's callable from any environment — a notebook, a batch script, an app running in another cloud — via the **Responses API + `agent_reference`**.
 
-The point isn't *publishing* (which you'd wire into a real product yourselves); it's that **once your
-agent works in the portal, it's the same object accessible via API for downstream integration**. Notice
-that the Part A portal `list_open_cases` result above includes both this curl case (CMS-2026-1188)
-and the portal case (CMS-2026-1190) — visual proof that they hit the same MCP store.
+The facilitator will run [`content/assets/lab5_call_hosted.py`](../assets/lab5_call_hosted.py) from a plain Python process on their laptop:
 
-📚 **Docs:** [Hosted agents on Foundry](https://learn.microsoft.com/en-us/azure/ai-foundry/agents/how-to/deploy-hosted)
+```python
+from azure.identity import DefaultAzureCredential
+from azure.ai.projects import AIProjectClient
+
+project = AIProjectClient(
+    endpoint="https://aif-casepal-workshop-sc.services.ai.azure.com/api/projects/casepal-workshop",
+    credential=DefaultAzureCredential(),
+)
+openai = project.get_openai_client()
+
+resp = openai.responses.create(
+    input="Lodge MDR-2026-0135 to case management as accept with condition, priority medium, ...",
+    extra_body={
+        "agent_reference": {
+            "name": "casepal-demo-hosted-mcp",
+            "type": "agent_reference",
+        }
+    },
+)
+print(resp.output_text)
+```
+
+A real transcript of that script — hitting the same MCP tool + same store as Part A — returns a fresh `CMS-2026-<n>`:
+
+![Terminal transcript: az login as facilitator@microsoft.com, then python lab5_call_hosted.py returns response in 16.2s from Foundry-hosted casepal-demo-hosted-mcp with case_id CMS-2026-1193 — Note callout explains the case_id was created via the MCP tool wired to the same store as the Portal Playground](screenshots/lab-05/99-foundry-hosted-terminal.png)
+
+### What this actually demonstrates
+
+- **Foundry does the hosting.** You did not spin up ACA, App Service, or a FastAPI app for your agent. Foundry runs the model, tool calls, guardrails, and evaluators. Your responsibility ends at the agent definition (Instructions + Tools + Model).
+- **The API is the endpoint.** `openai.responses.create(input=..., extra_body={"agent_reference": {...}})` is the "hosted endpoint" — it replaces any custom `/chat` API you'd write yourself. Batch jobs, downstream apps, and workflow triggers all call the same way.
+- **Tools, approvals, and evaluators come along for free.** The MCP tool wired in Part A works the same from Python. The `list_open_cases` result in Part A will surface both the portal-created `CMS-2026-11xx` and the script-created `CMS-2026-11xx` — visual proof they hit the same MCP store.
+- **Auth is Entra ID.** The caller (person or app) authenticates with Azure credentials; Foundry checks RBAC on the project.
+
+### Bring-your-own-container (advanced, not covered today)
+
+If you have a non-Foundry agent framework — Semantic Kernel, LangGraph, AutoGen, or a bespoke agent loop — Foundry can host that container for you too. Use `HostedAgentDefinition` (`kind: "hosted"`) with either:
+- **`container_configuration.image = "myacr.azurecr.io/myagent:v1"`** — Foundry pulls and runs the image, exposing a Responses-protocol endpoint automatically.
+- **`code_configuration.runtime = "python_3_12"` + `entry_point` + a bundled zip** — Foundry builds and hosts it.
+
+Both paths end in the same place as `PromptAgentDefinition`: a callable agent via `agent_reference`. The only difference is *whose code* runs behind the endpoint.
+
+📚 **Docs:** [Foundry Agent Service overview](https://learn.microsoft.com/azure/ai-foundry/agents/overview) · [Responses API + agent references](https://learn.microsoft.com/azure/ai-foundry/agents/how-to/use-agents-sdk)
 
 ---
 
@@ -204,7 +229,7 @@ and the portal case (CMS-2026-1190) — visual proof that they hit the same MCP 
 **What you learned.**
 - **Approvals are structured pauses.** MCP + Foundry's approval mode gives you a controllable seam between an agent's intent to write and the actual write. That's the pattern for high-consequence actions — much cleaner than "trust the model to check itself".
 - **Reads don't have to require approval.** `list_open_cases` is a read; production would toggle approval off for reads. The demo leaves everything approval-required to make the flow visible.
-- **Hosting doesn't change the agent.** The same agent-reference works from a hosted `/chat` endpoint, the portal, a notebook, or a downstream integration. Tools, approvals, and evaluators come along for free.
+- **Hosting is free with Foundry.** You didn't stand up ACA, App Service, or a FastAPI wrapper. Your agent is already callable from any Python process via `openai.responses.create(...) + agent_reference`. The API is the endpoint.
 - **Model-router keeps deciding.** Router picked a cheap model for the routine lodgement and a stronger model for the reasoning turns earlier. Cost and latency track complexity with no client-side steering.
 
 If the case_id didn't come back, check the MCP Container App logs — the tool may be pointing at a stale URL or an unhealthy endpoint.
