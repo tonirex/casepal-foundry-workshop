@@ -179,12 +179,83 @@ That's the lab.
 
 ## 🔵 Builder — notebook / script
 
-Open **[`lab1_intake.ipynb`](../assets/lab1_intake.ipynb)** and Run All, or:
+> [!IMPORTANT]
+> This is the **first Builder lab**, so do the one-time setup below before running anything.
+> Labs 2–5 assume it is already done.
+
+### 1 · Get a Python environment
+
+**GitHub Codespaces (recommended).** From the repo: **Code → Codespaces → Create codespace on `main`**.
+The devcontainer installs Python 3.11, the Azure CLI, and everything in `requirements.txt` for you
+via its `postCreateCommand` — wait for that terminal task to finish before running a lab.
+
+<details>
+<summary>Local machine instead</summary>
+
+```bash
+cd content/assets
+python3 -m venv .venv && source .venv/bin/activate
+pip install -r requirements.txt
+```
+
+Windows PowerShell:
+
+```powershell
+cd content\assets
+python -m venv .venv ; .venv\Scripts\Activate.ps1
+pip install -r requirements.txt
+$env:PYTHONIOENCODING = "utf-8"
+```
+</details>
+
+### 2 · Sign in to Azure
+
+There is **no API key**. The Builder rail authenticates with `DefaultAzureCredential`, which picks up
+your Azure CLI login:
+
+```bash
+az login --use-device-code
+```
+
+Use `--use-device-code` in Codespaces — it prints a code to paste into the browser, because the
+container cannot open one for you. Verify with `az account show`.
+
+### 3 · Create your `.env`
+
+```bash
+cd content/assets
+cp .env.example .env
+```
+
+Then edit `.env`:
+
+```dotenv
+FOUNDRY_PROJECT_ENDPOINT=https://<account>.services.ai.azure.com/api/projects/<project>
+FOUNDRY_MODEL_NAME=model-router
+INITIALS=xx
+```
+
+- **`FOUNDRY_PROJECT_ENDPOINT`** — Foundry portal → your **project** → **Overview** → *Endpoint*. It
+  must be the **project** endpoint ending in `/api/projects/<project>`, not the bare account URL.
+- **`INITIALS`** — yours, so your agents are named `casepal-<initials>-*` in the shared project and
+  you can tell them apart from everyone else's.
+
+`.env` is gitignored; `.env.example` is the template — never commit a filled-in `.env`.
+
+### 4 · Run the lab
+
+Open **[`lab1_intake.ipynb`](../assets/lab1_intake.ipynb)** and **Run All**. The first time, VS Code
+asks for a kernel — choose **Python Environments… → Python 3.11** (or your `.venv` if you made one).
+
+Prefer a terminal? The script is generated from the same source:
 
 ```bash
 cd content/assets
 python lab1_intake.py
 ```
+
+Both must be run from `content/assets` (or use the full path, `python content/assets/lab1_intake.py`),
+because the scripts resolve the case packages and knowledge corpus relative to that folder.
 
 **Under the hood** — the notebook / script:
 1. Loads 3 canned cases from `case-packages.jsonl` (one clean variation, one novel AI-MD, one prompt-injection stress-test).
@@ -214,6 +285,16 @@ python lab1_intake.py
 If any behaviour is missing, revisit the Instructions block or the Response-format setting. Troubleshooting is below.
 
 ## 🧯 Troubleshooting
+
+**Setup (Builder rail)**
+
+- **`RuntimeError: Set FOUNDRY_PROJECT_ENDPOINT`** — no `.env`, or the variable is empty. Run `cp .env.example .env` inside `content/assets` and paste the **project** endpoint from the portal Overview page.
+- **`ClientAuthenticationError: DefaultAzureCredential failed to retrieve a token`** — your Azure sign-in expired. Re-run `az login --use-device-code`. If it says *"Temporary Access Pass has expired"*, the pass your facilitator issued is short-lived and single-use — ask for a fresh one.
+- **`python: can't open file '.../lab1_intake.py'`** — you are in the repo root. Either `cd content/assets` first, or run `python content/assets/lab1_intake.py`.
+- **Notebook has no kernel / imports fail** — pick the interpreter: **Select Kernel → Python Environments… → Python 3.11**. In a Codespace, make sure the post-create `pip install` finished.
+- **`ModuleNotFoundError: azure.ai.projects`** — dependencies not installed: `pip install -r content/assets/requirements.txt`.
+
+**Agent behaviour**
 
 - **Agent returns prose, not JSON?** Set **Response format** to `JSON object` in the portal, or add `"Return JSON. No prose outside the JSON."` at the top of Instructions.
 - **`router_choice` field missing?** The router populates this in trace metadata, not the response body. Use the Foundry trace viewer (see Lab 3).
