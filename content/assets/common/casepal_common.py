@@ -320,17 +320,22 @@ def agent_reference(agent) -> dict:
     return {"name": agent.name, "type": "agent_reference"}
 
 
+def _responses_client():
+    # max_retries=0: the SDK's own retries would multiply with the loop below,
+    # turning one stalled call into several minutes of blocking.
+    return get_openai().with_options(max_retries=0, timeout=RESPONSE_TIMEOUT_SECONDS)
+
+
 def run_text(agent, text: str) -> str:
     # Retry on transient InternalServerError (500) — Foundry occasionally hiccups
     # mid-turn; the correct behaviour is to back off and retry, not fail the run.
     import time as _time
     last_err = None
-    for attempt in range(3):
+    for attempt in range(4):
         try:
-            resp = get_openai().responses.create(
+            resp = _responses_client().responses.create(
                 input=text,
                 extra_body={"agent_reference": agent_reference(agent)},
-                timeout=RESPONSE_TIMEOUT_SECONDS,
             )
             return resp.output_text
         except Exception as e:
