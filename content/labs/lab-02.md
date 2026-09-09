@@ -93,9 +93,15 @@ Grounding rules:
 - Continue to refuse regulatory decisions (Lab 0 rules still apply).
 ```
 
-3. Under **Tools & Knowledge**, add the **Foundry IQ index** `casepal-knowledge` as a knowledge source.
+3. Attach the pre-built **Foundry IQ Knowledge Base** to your agent. The facilitator has already created **`casepal-knowledge`** at workspace level — 17 documents (5 SOPs, 5 prior cases, 5 references, plus README and fake-registry) uploaded directly, indexed by `text-embedding-3-small`, backed by an Azure AI Search resource. You can browse it at left-nav **Knowledge → Knowledge bases**:
 
-   ![Tools panel showing File search connected to casepal-knowledge with 68.07 KB size and vector store ID vs_ZNXvFryxG0pW7VHbuTqvnJ4F](screenshots/lab-02/nav-02-tools-knowledge.png)
+   ![Foundry IQ Knowledge Base detail page for casepal-knowledge showing gpt-5-mini as the chat completions model, Retrieval reasoning effort Minimal, Output mode Extractive data, and a knowledge source casepal-knowledge-src of type File with Status Active](screenshots/lab-02/nav-03-kb-detail.png)
+
+   On your `casepal-<initials>` agent's Playground page, scroll to the **Knowledge** section (below Tools). Click **Add → Connect to Foundry IQ**:
+
+   ![Agent build page Knowledge section with Add dropdown open showing 'Connect to Foundry IQ' as the option](screenshots/lab-02/nav-05-agent-connect-foundry-iq.png)
+
+   Pick **`casepal-knowledge`** from the list. Save your agent.
 
 4. **Save**.
 5. Open the **Chat** tab. Test four prompts:
