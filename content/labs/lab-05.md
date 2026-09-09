@@ -57,6 +57,16 @@ You'll use this exact URL in the Navigator and Builder steps below.
 
 ### 🟢 Navigator — add the MCP tool to your agent
 
+> [!TIP]
+> **What you'll do vs. what you'll observe (Part A · Navigator)**
+>
+> | 🛠️ Hands-on — you change your own `casepal-<initials>` agent | 👀 Walkthrough — pre-deployed for the workshop |
+> |---|---|
+> | Steps 1–4 — Append the MCP-lodgement rule to Instructions, add the MCP tool | The `casepal-case-management` MCP server (Azure Container Apps, URL above) |
+> | Steps 5–7 — Chat, approve the tool call, verify with `list_open_cases` | The four MCP tools (`create_case`, `get_case`, `update_case_status`, `list_open_cases`) |
+>
+> **The whole of Part A · Navigator is hands-on** — you're extending your agent from Lab 3 with a new tool. The MCP server itself is pre-deployed for you.
+
 1. Open your **`casepal-<initials>`** agent from Lab 3. Extend the Instructions block by appending the MCP-lodgement rule:
 
    ![MCP-connected agent Instructions showing 'When the reviewer asks to lodge a case decision, use the casepal-case-management MCP tool. Confirm approval BEFORE any create_case or update_case_status call.'](screenshots/lab-05/nav-01-instructions.png)

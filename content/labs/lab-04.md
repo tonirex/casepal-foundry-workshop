@@ -76,11 +76,21 @@ The orchestrator produces:
 
 ## 🟢 Navigator — walk through the pre-deployed multi-agent setup
 
+> [!NOTE]
+> **👀 This entire Navigator rail is a walkthrough — no agents to build.**
+> The five agents in this lab (`casepal-demo-extraction`, `casepal-demo-screening`,
+> `casepal-demo-prior-case`, `casepal-demo-comms`, and `casepal-demo-orchestrator`)
+> are already deployed in the workshop project. You'll open each one to see how the
+> multi-agent pattern is wired, then chat with the orchestrator to see it in action.
+> This is deliberate — spinning up five specialists during a 50-minute session would
+> eat the whole time. The Builder rail below is where you can (optionally) run the
+> real function-tool fan-out yourself.
+
 **The four specialist agents in this lab are already deployed for you.** You'll walk through each one to see how the multi-agent pattern is wired in Foundry today — you don't need to build or connect anything in the portal.
 
 **A note on Foundry Workflows.** The portal has a **Workflows** feature (**Agents → Workflows**) that historically hosted visual multi-agent authoring. Microsoft is retiring Workflows on **1 December 2026** in favour of the **Microsoft Agent Framework**. The current portal-side option is **Agent-to-agent (A2A)**, which requires each specialist to be published as an A2A endpoint (see the config dialog below). Because Foundry doesn't auto-expose agents as A2A servers today, real multi-agent orchestration currently lives in code — see the Builder rail below.
 
-### Walk 1 — meet the four specialists
+### Walk 1 (👀) — meet the four specialists
 
 Open the **Agents** list and click each of these agents in turn. Read the Instructions block on each — you'll see how a specialist gets its behaviour from a **narrow prompt**, not from a special agent type.
 
@@ -93,7 +103,7 @@ Open the **Agents** list and click each of these agents in turn. Read the Instru
 
 Notice each has its own **Tools & Knowledge** setup — extraction has none, screening and prior-case use file_search on the same `casepal-knowledge` vector store you connected in Lab 2, and comms has none. Each specialist is a boring, single-purpose CasePal agent. The magic is how they're combined.
 
-### Walk 2 — the A2A tool dialog (for reference)
+### Walk 2 (👀) — the A2A tool dialog (for reference)
 
 Under a normal agent's **Tools & Knowledge**, if you click **Add → Add tools → Custom → Agent2agent (A2A)** you'll get this dialog:
 
@@ -101,7 +111,7 @@ Under a normal agent's **Tools & Knowledge**, if you click **Add → Add tools �
 
 This is where you'd wire an orchestrator to specialists in the portal — one A2A entry per specialist. Because A2A needs an HTTP endpoint (Foundry agents don't auto-publish one), we use the equivalent function-tool pattern in code — see the Builder rail below.
 
-### Walk 3 — meet the orchestrator
+### Walk 3 (👀) — meet the orchestrator
 
 Back in the **Agents** list, click **`casepal-demo-orchestrator`** — the coordinator that fans out to the four specialists you just met. Open its **Instructions** panel and read the delegation rule; open its **Tools & Knowledge** panel and note it has:
 - The **Foundry IQ knowledge base** (`casepal-knowledge`) attached as an MCP tool — for grounding synthesised replies in the SOP corpus.
@@ -128,7 +138,7 @@ The orchestrator has **two modes**:
 - **Portal walkthrough mode** (what you get when you open it in the Playground) — it prefixes replies with a `[Walkthrough reply — …]` banner and produces the target JSON shape *directly*, reasoning over the Foundry IQ corpus rather than emitting unresolved function calls. Confidence is capped at 0.75 whenever a screening gap remains open, per the delegation rule.
 - **Production mode** (what happens when the Builder rail script is the client) — it actually fans out to the four specialists via the function tools; the runner catches each `function_call` event and forwards it to the deployed specialist. Confidence still capped at 0.75 while gaps are open.
 
-### Walk 4 — send Wei Ling's compound question
+### Walk 4 (👀) — send Wei Ling's compound question
 
 Open **`casepal-demo-orchestrator`** in the Playground and paste this prompt into the Chat panel:
 
