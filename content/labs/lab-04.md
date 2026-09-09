@@ -74,81 +74,40 @@ The orchestrator produces:
 
 ---
 
-## 🟢 Navigator — build the workflow
+## 🟢 Navigator — connect the specialists
 
-1. Create the four specialist agents (or clone from `casepal-reference-*`):
+The four specialists (`casepal-<initials>-extraction`, `-screening`, `-prior-case`, `-comms`) are already created for you as separate Foundry agents. Your job is to wire the orchestrator so it can call them as tools.
 
-   **`casepal-<initials>-extraction`** — reuses Lab 1's intake agent verbatim (rename the copy).
+**A note on Foundry Workflows.** The portal has a **Workflows** feature (**Agents → Workflows**) that historically hosted this pattern. Microsoft is retiring Workflows on **1 December 2026** in favour of the **Microsoft Agent Framework**. This lab therefore uses the current recommended path: connect each specialist to the orchestrator as an **Agent-to-agent (A2A)** tool.
 
-   **`casepal-<initials>-screening`** — Screening agent:
-   ```text
-   You are the CasePal Screening agent. Given an intake JSON (Lab 1 shape) and the SOP index,
-   check the intake against:
-   - SOP-01 (completeness for declared class)
-   - SOP-03 (clinical evaluation adequacy for declared class)
-   
-   Return a JSON object:
-     { "gaps": [<one line each>], "sop_citations": [<sop id + section>], "severity": "low" | "medium" | "high" }
-   
-   You never make regulatory statements. You never recommend accept/reject. Gaps are FACTUAL
-   observations against SOPs, not opinions.
-   ```
+1. Confirm the four specialist agents exist in your project (**Agents** list).
 
-   **`casepal-<initials>-prior-case`** — Prior-Case agent:
-   ```text
-   You are the CasePal Prior-Case agent. Given (applicant, device_category, declared_class),
-   search the prior-case store for similar prior submissions per SOP-04.
-   
-   Return a JSON object:
-     { "count": <int>, "sample_case_ids": [<up to 5 case IDs>], "similarity_note": <one sentence> }
-   
-   You never make regulatory statements. You never invent case IDs. If count is 0, say so.
-   ```
+2. Open your **`casepal-<initials>-knowledge`** agent (from Lab 2 / Lab 3) — this is the orchestrator.
 
-   **`casepal-<initials>-comms`** — Comms Drafter:
-   ```text
-   You are the CasePal Comms Drafter. Given an intake JSON + a list of gaps, draft a Request-
-   For-Information (RFI) email to the applicant per SOP-05.
-   
-   Structure per SOP-05: subject line "[<case_id>] Request for information", greeting, one-
-   sentence case reference paragraph, numbered questions (each citing the SOP for the
-   requirement), 30-day deadline, sign-off placeholder, footer.
-   
-   Never make claims about causality. Never signal a regulatory decision. Always end with
-   "This is a draft for reviewer review before sending."
-   ```
-
-2. Connect them with the portal's **Workflows** feature (**Agents → Workflows**). Wire:
-   - **Orchestrator** (`casepal-<initials>-knowledge`) as the entry point.
-   - Four specialist nodes.
-   - Route: for LOW-severity gaps + prior-similar hits, recommendation trends `accept` or `accept_with_condition`; for HIGH severity or ≥2 gaps, `query`; for `needs_reviewer_determination` intake, `needs_review`.
-
-3. Update the orchestrator Instructions with the delegation rule:
+3. Update the orchestrator's Instructions with the delegation rule:
 
    ![Orchestrator Instructions panel with the delegation rule that calls Extraction, Screening, Prior-Case, and Comms Drafter](screenshots/lab-04/nav-01-instructions.png)
 
-```text
-You are the CasePal orchestrator. On every case:
-1. Call Extraction first (always) to get the intake JSON.
-2. Call Screening (always) to identify gaps against SOP-01 + SOP-03.
-3. Call Prior-Case (always) to check institutional memory.
-4. If the user asked for a communication draft AND Screening returned gaps, call Comms
-   Drafter with (intake, gaps) to produce the RFI.
-5. Synthesise ONE JSON reply as specified in the schema, with a confidence 0.0–1.0
-   reflecting: (a) how many required documents were present, (b) whether the prior-case
-   hit corroborates or contradicts the recommendation, (c) how clear-cut the class
-   determination is.
-6. For HIGH-risk or regulatory-decision requests, apply Lab 3 guardrails and escalate
-   instead of delegating.
-```
+   ```text
+   You are the CasePal orchestrator. On every case:
+   1. Call the Extraction specialist first to get the intake JSON.
+   2. Call the Screening specialist to identify gaps against SOP-01 + SOP-03.
+   3. Call the Prior-Case specialist to check institutional memory.
+   4. If the user asked for a communication draft AND Screening returned gaps, call the
+      Comms Drafter with (intake, gaps) to produce the RFI.
+   5. Synthesise ONE JSON reply with sections: intake, screening, prior_cases,
+      recommendation (with recommendation, confidence 0.0-1.0, supporting_evidence[],
+      rationale), draft_communication.
+   6. For HIGH-risk or regulatory-decision requests, apply Lab 3 guardrails.
+   ```
 
-The orchestrator uses file_search on the shared knowledge index — Foundry model-router picks the reasoning model dynamically during synthesis:
+4. Under **Tools & Knowledge**, click **Add → Add tools → Custom → Agent2agent (A2A)**. Add one entry per specialist. The dialog asks for a name, an A2A endpoint, and authentication (Microsoft Entra Agent Identity).
 
-![Tools panel showing the orchestrator wired with File search on the casepal-knowledge vector store](screenshots/lab-04/nav-02-tools-knowledge.png)
+   ![A2A tool config dialog: Connect the A2A Tool with a name field, an A2A Agent Endpoint field expecting a URL like https://api.box.com/a2a, and Authentication set to Microsoft Entra Agent Identity. A note explains the calling agent needs the 'Foundry Agent Consumer' role assigned when connecting to another Foundry agent.](screenshots/lab-04/nav-03-a2a-config.png)
 
-4. **Chat** → the orchestrator inherits the Lab 0 consent rule; send `yes` to advance past consent, then send the compound question:
+   > 💡 **A2A requires each specialist to be published as an A2A endpoint.** Foundry doesn't auto-expose agents as A2A servers today; publishing is a facilitator task in a real environment. In this workshop we use the equivalent **function-tool orchestration** pattern from the Builder rail as the practical implementation — see below.
 
-   ![Consent flow: orchestrator replies with the CasePal intro noting synthetic data and asks the reviewer for consent](screenshots/lab-04/01b-consent-response.png)
+5. **Chat** → send the compound question:
 
    ```
    Screen MDR-2026-0129 for completeness, check whether we've reviewed anything similar
@@ -156,14 +115,13 @@ The orchestrator uses file_search on the shared knowledge index — Foundry mode
    precision-and-accuracy data for the CRP measurement.
    ```
 
-5. Confirm the reply covers **all four sections** (intake / screening / prior_cases / recommendation) plus the draft communication. Open the **trace** and confirm **all four specialists were called**.
-
-   ![Compound-query response with prior_case_check (count 0), recommendation.action=query_applicant, query_letter draft to BloodDx Ltd about missing CRP precision data, overall confidence 0.78; 34s, 16871 tokens, File search used, model-router picked gpt-5.6-luna](screenshots/lab-04/02b-compound-query-response.png)
-
+6. Confirm the reply covers **all five sections** (intake, screening, prior_cases, recommendation, draft_communication). Open the **Traces** tab and confirm **all four specialists were called** — not one agent that produced a JSON that *looks* multi-agent.
 
 ---
 
-## 🔵 Builder — notebook / script
+## 🔵 Builder — function-tool orchestration (the real multi-agent path)
+
+Because A2A currently requires each specialist to be published as an endpoint, this workshop teaches multi-agent via **function tools** in the Foundry Agent SDK. Each tool is a Python handler that dispatches to a deployed specialist agent using the same `agent_reference` pattern from Lab 2. Under the hood this is identical to A2A: an orchestrator sends work to another agent, gets a reply back, and continues its own turn.
 
 Open **[`lab4_multiagent.ipynb`](../assets/lab4_multiagent.ipynb)** and Run All, or:
 
@@ -173,15 +131,18 @@ python lab4_multiagent.py
 ```
 
 **Under the hood** — the notebook / script:
-1. Defines the five agents (orchestrator + 4 specialists) via `PromptAgentDefinition`.
-2. Exposes each specialist as a `function_tool(...)` on the orchestrator's definition.
-3. Runs the compound query with `run_with_trace(...)`.
-4. Catches each `function_call` Foundry emits, invokes the matching specialist, feeds the result back with `previous_response_id` until the orchestrator returns one merged JSON.
-5. Prints the tool-call chain and the synthesised reply.
+1. Defines the orchestrator with four `function_tool(...)` definitions: `extract_case`, `screen_case`, `find_prior_cases`, `draft_rfi`.
+2. Each tool handler forwards the call to the corresponding deployed specialist (`casepal-<initials>-{extraction,screening,prior-case,comms}`) via the responses API.
+3. The orchestrator runs the compound query; each time it emits a `function_call`, the runner catches it, invokes the specialist, and feeds the result back using `previous_response_id`.
+4. The chain terminates when the orchestrator produces the synthesised JSON.
 
 A concurrent variant (`lab4_multiagent_concurrent.py`) shows how to run Screening + Prior-Case + Comms Drafter in parallel via `asyncio.gather(...)` once Extraction returns — the three downstream specialists are independent.
 
-📚 **Docs:** [Function calling / tools](https://learn.microsoft.com/en-us/azure/ai-foundry/agents/how-to/tools/function-calling) · [Connected / multi-agent workflows](https://learn.microsoft.com/en-us/azure/ai-foundry/agents/concepts/workflows)
+**Sample run showing the real trace:**
+
+![Cinematic terminal transcript of demo-lab4-real-multiagent.py: orchestrator issues 4 function calls to casepal-demo-extraction, casepal-demo-screening, casepal-demo-prior-case, and casepal-demo-comms; each specialist returns real JSON output; orchestrator synthesises intake + screening (severity high, 4 gaps, SOP-01/SOP-03 citations) + prior_cases (count 0, no prior similar) + recommendation (confidence 0.55, 5 pieces of supporting evidence) + draft_communication (9-point RFI); PASS: all four specialists called; PASS: this is real multi-agent orchestration not a single agent's fabricated JSON](screenshots/lab-04/multiagent-final-terminal.png)
+
+📚 **Docs:** [Function calling / tools](https://learn.microsoft.com/en-us/azure/ai-foundry/agents/how-to/tools/function-calling) · [Microsoft Agent Framework](https://learn.microsoft.com/en-us/agent-framework/) (the recommended long-term path replacing Workflows)
 
 ---
 
