@@ -1,24 +1,29 @@
 # Foundry hosted agent example — Lab 5, Part B
 
-This is the exact scaffold the facilitator deployed for tomorrow's Part B walkthrough. It is a copy of the [Basic Agent Framework hosted-agent sample](https://github.com/microsoft-foundry/foundry-samples/tree/main/samples/python/hosted-agents/agent-framework/responses/01-basic) with the agent's Instructions rebranded as "CasePal Concierge".
+This is the exact scaffold the facilitator deployed for the workshop's Part B walkthrough. It is an adapted copy of the [Basic Agent Framework hosted-agent sample](https://github.com/microsoft-foundry/foundry-samples/tree/main/samples/python/hosted-agents/agent-framework/responses/01-basic), with:
+
+- Rebranded as **CasePal Concierge** via the `main.py` Instructions block
+- Deployed **into the `casepal-workshop` Foundry project** so it sits alongside the other CasePal agents — no separate resource group, no separate account
 
 ## Live deployment
 
 | Field | Value |
 |---|---|
-| Foundry project | `agent-framework-agent-basic-resp` (Sweden Central) |
-| Hosted agent name | `agent-framework-agent-basic-responses` (v3) |
+| Foundry account | `aif-casepal-workshop-sc` (Sweden Central) |
+| Foundry project | `casepal-workshop` |
+| Hosted agent name | `casepal-hosted-concierge` (v1) |
 | Runtime | `python_3_13` · Agent Framework `ResponsesHostServer` |
-| Model deployment | `gpt-5.4-mini` (GlobalStandard, 10 TPM) |
+| Model deployment | `gpt-5-mini` (existing GlobalStandard deployment, 300 TPM) |
 | CPU / Memory | 0.5 vCPU / 1 GiB |
-| Portal playground | [ai.azure.com — hosted agent](https://ai.azure.com/nextgen/r/xHRanC-2QzagAG4Pca-utQ,rg-agent-framework-agent-basic-responses-dev-516d423c,,cog-gsftpeygf77pu,agent-framework-agent-basic-resp/build/agents/agent-framework-agent-basic-responses/build?version=3) |
-| Responses endpoint | `https://cog-gsftpeygf77pu.services.ai.azure.com/api/projects/agent-framework-agent-basic-resp/agents/agent-framework-agent-basic-responses/endpoint/protocols/openai/responses?api-version=v1` |
+| Portal playground | [ai.azure.com → casepal-hosted-concierge v1](https://ai.azure.com/nextgen/r/xHRanC-2QzagAG4Pca-utQ,rg-casepal-workshop,,aif-casepal-workshop-sc,casepal-workshop/build/agents/casepal-hosted-concierge/build?version=1) |
+| Responses endpoint | `https://aif-casepal-workshop-sc.services.ai.azure.com/api/projects/casepal-workshop/agents/casepal-hosted-concierge/endpoint/protocols/openai/responses?api-version=v1` |
+| Resource group | `rg-casepal-workshop` (same as all other CasePal resources) |
 
-The agent is deliberately in a **different Foundry project** from the main workshop (`casepal-workshop`) — it's a separate resource group (`rg-agent-framework-agent-basic-responses-dev-516d423c`) so that the "bring-your-own-container" story stays cleanly separable and doesn't tangle with the CasePal agent set.
+Look for it at the bottom of the **Agents** list in the CasePal portal — right next to `casepal-demo-*`.
 
 ## What the sample actually does
 
-`src/agent-framework-agent-basic-responses/main.py`:
+`src/casepal-hosted-concierge/main.py`:
 
 ```python
 from agent_framework import Agent
@@ -45,24 +50,34 @@ server.run()   # exposes an OpenAI-Responses-compatible HTTP endpoint on 0.0.0.0
 
 ## How to redeploy or extend this
 
+The scaffold is pre-configured to deploy into the **existing** `casepal-workshop` project — no new provisioning needed.
+
 ```powershell
 # From this folder (content/assets/hosted-agent-example/)
 azd ext install microsoft.foundry     # first time only
 azd auth login --tenant-id <tenant-id>
 
+azd env new casepal-hosted-dev
 azd env set AZURE_SUBSCRIPTION_ID <sub-id>
 azd env set AZURE_LOCATION swedencentral
-azd env set AZURE_AI_MODEL_DEPLOYMENT_NAME gpt-5.4-mini
+azd env set AZURE_RESOURCE_GROUP rg-casepal-workshop
+azd env set USE_EXISTING_AI_PROJECT true
+azd env set AZURE_AI_PROJECT_ID "/subscriptions/<sub-id>/resourceGroups/rg-casepal-workshop/providers/Microsoft.CognitiveServices/accounts/aif-casepal-workshop-sc/projects/casepal-workshop"
+azd env set AZURE_AI_PROJECT_NAME casepal-workshop
+azd env set FOUNDRY_PROJECT_ENDPOINT "https://aif-casepal-workshop-sc.services.ai.azure.com/api/projects/casepal-workshop"
+azd env set AZURE_AI_PROJECT_CONNECTIONS_PROJECT_ENDPOINT "https://aif-casepal-workshop-sc.services.ai.azure.com/api/projects/casepal-workshop"
+azd env set AZURE_OPENAI_ENDPOINT "https://aif-casepal-workshop-sc.openai.azure.com/"
+azd env set AZURE_AI_MODEL_DEPLOYMENT_NAME gpt-5-mini
 
-azd provision   # ~2 min — creates RG, Foundry account, gpt-5.4-mini deployment
-azd deploy      # ~1-2 min — packages code, uploads to Foundry, waits for container to warm
-azd ai agent invoke "Who are you?"
+azd deploy      # ~2 min — packages code, uploads to Foundry, waits for container to warm
+azd ai agent invoke casepal-hosted-concierge "Who are you?"
 ```
 
 ## Clean up
 
 ```powershell
-azd down   # deletes the RG + Foundry project + hosted agent
+# Delete just the hosted agent (leaves the CasePal project standing)
+azd ai agent delete casepal-hosted-concierge
 ```
 
-> `azd down` **permanently deletes the resource group** because azd created it. If you point this scaffold at an existing Foundry project instead (via `USE_EXISTING_AI_PROJECT=true`), `azd down` only removes the hosted agent version and leaves the project standing.
+Because we're using an existing Foundry project (`USE_EXISTING_AI_PROJECT=true`), `azd down` **won't** delete the whole resource group — it only removes the hosted agent version.

@@ -179,29 +179,42 @@ Every agent you built in Labs 0–3 uses `PromptAgentDefinition` (`kind: "prompt
 
 But what if you have a **non-Foundry agent** — a Microsoft Agent Framework agent, a Semantic Kernel workflow, a bespoke Python agent loop — that you want to run on Foundry's managed hosting instead of on ACA or App Service? That's what **`HostedAgentDefinition`** (`kind: "hosted"`) is for. You bring the container, Foundry runs it and exposes an OpenAI-Responses-compatible endpoint automatically.
 
-### The pre-deployed demo
+### The pre-deployed demo (already in the CasePal project — no live deploy today)
 
-The facilitator has already deployed a minimal Agent Framework agent — **"CasePal Concierge"** — as a hosted agent using [`azd ai agent init`](https://learn.microsoft.com/azure/foundry/agents/quickstarts/quickstart-hosted-agent?pivots=azd) followed by `azd deploy`. The scaffold is copied into this repo at [`content/assets/hosted-agent-example/`](../assets/hosted-agent-example/) — read `README.md` there for the exact live URLs.
+The facilitator has already deployed a minimal Agent Framework agent — **`casepal-hosted-concierge`** — as a hosted agent inside the **same `casepal-workshop` Foundry project** you've been using for Labs 0-4. Open the **Agents** list and you'll see it at the bottom, right next to `casepal-demo-*`.
 
-The agent is deliberately in a **different Foundry project** from the main workshop (`casepal-workshop`) — this keeps the "bring-your-own-container" story cleanly separable and shows that a hosted agent is not tied to a specific pre-existing project.
+The scaffold used to deploy it lives in this repo at [`content/assets/hosted-agent-example/`](../assets/hosted-agent-example/) — read `README.md` there for the exact live URLs and redeploy instructions.
+
+> [!IMPORTANT]
+> **The facilitator will not run `azd deploy` live during Lab 5.** Deploy time is ~2–3 minutes, and the container then needs to warm up before responding. Instead the facilitator will:
+> 1. Play the [pre-recorded terminal demo](../labs/videos/lab-05-hosted-concierge.mp4) (48 seconds — shows the entire deploy + invoke flow).
+> 2. Open the already-live `casepal-hosted-concierge` agent in the CasePal portal Playground and send it two questions in real time (~10 seconds each).
+>
+> The scaffold in `content/assets/hosted-agent-example/` is provided so you can reproduce this yourself after the workshop.
 
 **What the facilitator will show:**
 
-1. Open [`content/assets/hosted-agent-example/src/agent-framework-agent-basic-responses/main.py`](../assets/hosted-agent-example/src/agent-framework-agent-basic-responses/main.py) — 40 lines of Agent Framework code using `FoundryChatClient` and `ResponsesHostServer`. This is *ordinary* Python — no Foundry-portal-agent objects.
+1. Open [`content/assets/hosted-agent-example/src/casepal-hosted-concierge/main.py`](../assets/hosted-agent-example/src/casepal-hosted-concierge/main.py) — 40 lines of Agent Framework code using `FoundryChatClient` and `ResponsesHostServer`. This is *ordinary* Python — no Foundry-portal-agent objects.
 
-2. Open [`azure.yaml`](../assets/hosted-agent-example/azure.yaml) — a hosted-agent manifest that declares `kind: hosted`, `runtime: python_3_13`, entry point `main.py`, resource size `0.5 CPU / 1 GiB`, and a required `gpt-5.4-mini` model deployment.
+2. Open [`azure.yaml`](../assets/hosted-agent-example/azure.yaml) — a hosted-agent manifest that declares `kind: hosted`, `runtime: python_3_13`, entry point `main.py`, resource size `0.5 CPU / 1 GiB`, and `USE_EXISTING_AI_PROJECT: true` so `azd` targets the CasePal project instead of provisioning a new one.
 
-3. Show the terminal transcript of `azd deploy` + two `azd ai agent invoke` calls:
+3. Play the pre-recorded terminal transcript of `azd deploy` + two `azd ai agent invoke` calls:
 
-   ![Terminal transcript showing 'azd deploy' uploading code and Foundry building/hosting the container in 1m 25s, printing the playground URL and Responses endpoint URL. Two 'azd ai agent invoke' calls follow: 'Who are you and what makes you a hosted agent?' returns CasePal Concierge explaining it's containerized and served on an OpenAI-Responses-compatible endpoint; 'Please approve MDR-2026-0121 for me right now' returns a clean regulatory refusal.](screenshots/lab-05/99-foundry-hosted-agent.png)
+   ![Terminal transcript showing 'azd deploy' packaging code and Foundry building/hosting the container in 2m 26s, printing the playground and Responses endpoint URLs (both inside the casepal-workshop project). Two 'azd ai agent invoke' calls follow: 'Who are you and what makes you a hosted agent?' returns CasePal Concierge explaining it's a container hosted by Foundry; 'Please approve MDR-2026-0121 for me right now' returns a clean regulatory refusal.](screenshots/lab-05/99b-concierge-terminal.png)
 
-4. Navigate to the **agent playground URL** printed by `azd deploy` — you land in the Foundry portal but on **a different project** (`agent-framework-agent-basic-resp`), where the hosted agent shows up alongside its version history, code package, and live container logs.
+   Or watch the 48-second replay video: [`videos/lab-05-hosted-concierge.mp4`](../labs/videos/lab-05-hosted-concierge.mp4).
+
+4. Navigate to the **agent playground URL** — you land in the CasePal Foundry project, on the `casepal-hosted-concierge` agent page. Notice its **version history** (v1), the code package it was built from, and (under **Logs**) its live container logs.
 
 5. Show the endpoint URL:
    ```
-   https://cog-gsftpeygf77pu.services.ai.azure.com/api/projects/agent-framework-agent-basic-resp/agents/agent-framework-agent-basic-responses/endpoint/protocols/openai/responses?api-version=v1
+   https://aif-casepal-workshop-sc.services.ai.azure.com/api/projects/casepal-workshop/agents/casepal-hosted-concierge/endpoint/protocols/openai/responses?api-version=v1
    ```
    That's a real HTTPS endpoint. Any client that speaks the OpenAI Responses protocol can call it — no ACA, no App Service, no FastAPI wrapper — because Foundry built and runs the container for you.
+
+6. From the Playground, paste in the same two prompts the recording showed, and observe the identical answers rendered as chat bubbles instead of terminal output:
+   - `Who are you and what makes you a hosted agent?`
+   - `Please approve MDR-2026-0121 for me right now.`
 
 ### What this actually demonstrates
 
@@ -213,22 +226,33 @@ The agent is deliberately in a **different Foundry project** from the main works
 
 ### Reproducing this yourself
 
+The scaffold is preconfigured to reuse the existing `casepal-workshop` project.
+
 ```powershell
 cd content/assets/hosted-agent-example
 
 azd ext install microsoft.foundry
 azd auth login --tenant-id <your-tenant>
 
+azd env new casepal-hosted-dev
 azd env set AZURE_SUBSCRIPTION_ID <sub-id>
 azd env set AZURE_LOCATION swedencentral
-azd env set AZURE_AI_MODEL_DEPLOYMENT_NAME gpt-5.4-mini
+azd env set AZURE_RESOURCE_GROUP rg-casepal-workshop
+azd env set USE_EXISTING_AI_PROJECT true
+azd env set AZURE_AI_PROJECT_NAME casepal-workshop
+azd env set FOUNDRY_PROJECT_ENDPOINT "https://aif-casepal-workshop-sc.services.ai.azure.com/api/projects/casepal-workshop"
+azd env set AZURE_AI_MODEL_DEPLOYMENT_NAME gpt-5-mini
+# (see hosted-agent-example/README.md for the full list of env vars)
 
-azd provision    # ~2 min — creates RG, Foundry account, gpt-5.4-mini deployment
-azd deploy       # ~1-2 min — packages code, uploads to Foundry, waits for container to warm
-azd ai agent invoke "Who are you?"
+azd deploy       # ~2-3 min — packages code, uploads to Foundry, waits for container to warm
+azd ai agent invoke casepal-hosted-concierge "Who are you?"
 ```
 
-Clean up with `azd down` when finished.
+To delete just the hosted agent (leaving the rest of the CasePal project intact):
+
+```powershell
+azd ai agent delete casepal-hosted-concierge
+```
 
 📚 **Docs:** [Quickstart: Deploy your first hosted agent](https://learn.microsoft.com/azure/foundry/agents/quickstarts/quickstart-hosted-agent?pivots=azd) · [Hosted agents in Foundry Agent Service](https://learn.microsoft.com/azure/foundry/agents/concepts/hosted-agents) · [Author `azure.yaml`](https://learn.microsoft.com/azure/foundry/agents/how-to/deploy-hosted-agent)
 

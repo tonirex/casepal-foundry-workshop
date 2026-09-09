@@ -4,10 +4,10 @@ requiredVersions:
     azd: '>=1.27.1'
     extensions:
         azure.ai.agents: '>=1.0.0-beta.9'
-name: agent-framework-agent-basic-responses
+name: casepal-hosted-concierge
 services:
-    agent-framework-agent-basic-responses:
-        project: src/agent-framework-agent-basic-responses
+    casepal-hosted-concierge:
+        project: src/casepal-hosted-concierge
         host: azure.ai.agent
         language: python
         uses:
@@ -22,16 +22,16 @@ services:
             resources:
                 cpu: "0.5"
                 memory: 1Gi
-        description: A basic Agent Framework agent hosted by Foundry.
+        description: CasePal Concierge — Agent Framework container hosted by Foundry Agent Service (Lab 5 Part B).
         kind: hosted
         metadata:
             tags:
+                - CasePal
                 - Agent Framework
-                - AI Agent Hosting
-                - Azure AI AgentServer
+                - Hosted Agent
                 - Responses Protocol
-                - Streaming
-        name: agent-framework-agent-basic-responses
+                - Lab 5
+        name: casepal-hosted-concierge
         protocols:
             - protocol: responses
               version: 2.0.0
@@ -40,11 +40,11 @@ services:
         deployments:
             - model:
                 format: OpenAI
-                name: gpt-5.4-mini
-                version: "2026-03-17"
-              name: gpt-5.4-mini
+                name: gpt-5-mini
+                version: "2025-08-07"
+              name: gpt-5-mini
               sku:
-                capacity: 10
+                capacity: 300
                 name: GlobalStandard
 infra:
     provider: microsoft.foundry
