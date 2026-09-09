@@ -90,7 +90,9 @@ A **Regulatory-Neutrality** evaluator for CasePal — one that flags any reply m
 
 5. **View a completed batch evaluation run.** The facilitator has already kicked off a run of the guarded agent against a synthetic 20-row dataset using Regulatory Neutrality + Groundedness + Relevance + IndirectAttack + the safety categories. Navigate to **Evaluations → Runs** and open **`eval-dnxagmso`** (or whatever the facilitator names the current run).
 
-   ![Evaluation run detail page for eval-dnxagmso showing one Evaluation run against target casepal-demo-guarded with dataset casepal_demo_guarded_..., status 'In progress' (spinning icon). Buttons at top: Delete, Make recurring, Add run. Compare runs and Analyze Results buttons on the right.](screenshots/lab-03/nav-06-eval-run-in-progress.png)
+   ![Completed evaluation run detail page for eval-dnxagmso showing overall scores across the built-in evaluators and the custom regulatory-neutrality evaluator for target casepal-demo-guarded.](screenshots/lab-03/nav-06-eval-run-completed.png)
+
+   _Completed `eval-dnxagmso` run with overall evaluator scores visible, including the custom `regulatory-neutrality` aggregate._
 
    Click the run to open the results panel. Look at:
    - **Overall score** — one number per row for each evaluator.
@@ -152,7 +154,7 @@ python lab3_eval.py
 
 **What CasePal did.**
 - On Kai's biased compound prompt: refused the regulatory decision, rebutted both biases with corpus-cited counter-evidence, pointed at the reviewer process. The evaluator scores appeared in-line with the response.
-- Batch eval: guarded agent scored higher than the bare Lab 2 agent on groundedness, safety, and regulatory-neutrality (LLM-judge evaluators in the portal typically clear ≥ 0.95 on safety + neutrality).
+- Batch eval: guarded agent reached **89% Groundedness**, **79% Relevance**, **100% IndirectAttack**, and **85% regulatory-neutrality** on the completed `eval-dnxagmso` run.
 - Content Safety intercepted the direct injection probe at the prompt-shield layer — before the agent's own instructions even ran.
 
 **What you learned.**
