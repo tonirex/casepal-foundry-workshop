@@ -74,48 +74,53 @@ The orchestrator produces:
 
 ---
 
-## 🟢 Navigator — connect the specialists
+## 🟢 Navigator — walk through the pre-deployed multi-agent setup
 
-The four specialists (`casepal-<initials>-extraction`, `-screening`, `-prior-case`, `-comms`) are already created for you as separate Foundry agents. Your job is to wire the orchestrator so it can call them as tools.
+**The four specialist agents in this lab are already deployed for you.** You'll walk through each one to see how the multi-agent pattern is wired in Foundry today — you don't need to build or connect anything in the portal.
 
-**A note on Foundry Workflows.** The portal has a **Workflows** feature (**Agents → Workflows**) that historically hosted this pattern. Microsoft is retiring Workflows on **1 December 2026** in favour of the **Microsoft Agent Framework**. This lab therefore uses the current recommended path: connect each specialist to the orchestrator as an **Agent-to-agent (A2A)** tool.
+**A note on Foundry Workflows.** The portal has a **Workflows** feature (**Agents → Workflows**) that historically hosted visual multi-agent authoring. Microsoft is retiring Workflows on **1 December 2026** in favour of the **Microsoft Agent Framework**. The current portal-side option is **Agent-to-agent (A2A)**, which requires each specialist to be published as an A2A endpoint (see the config dialog below). Because Foundry doesn't auto-expose agents as A2A servers today, real multi-agent orchestration currently lives in code — see the Builder rail below.
 
-1. Confirm the four specialist agents exist in your project (**Agents** list).
+### Walk 1 — meet the four specialists
 
-2. Open your **`casepal-<initials>-knowledge`** agent (from Lab 2 / Lab 3) — this is the orchestrator.
+Open the **Agents** list and click each of these agents in turn. Read the Instructions block on each — you'll see how a specialist gets its behaviour from a **narrow prompt**, not from a special agent type.
 
-3. Update the orchestrator's Instructions with the delegation rule:
+| Specialist | Job | Look at |
+|---|---|---|
+| `casepal-demo-extraction` | Given a dossier, return the Lab-1 intake JSON | Instructions look like Lab 1's intake block |
+| `casepal-demo-screening` | Given intake JSON, check against SOP-01 + SOP-03; return `{gaps, sop_citations, severity}` | Read-only, never issues a recommendation |
+| `casepal-demo-prior-case` | Given `(applicant, device_category, declared_class)`, search prior cases; return `{count, sample_case_ids, similarity_note}` | Refuses to invent a case ID |
+| `casepal-demo-comms` | Given intake + gaps, draft an RFI email per SOP-05 | Always ends with "This is a draft for reviewer review before sending" |
 
-   ![Orchestrator Instructions panel with the delegation rule that calls Extraction, Screening, Prior-Case, and Comms Drafter](screenshots/lab-04/nav-01-instructions.png)
+Notice each has its own **Tools & Knowledge** setup — extraction has none, screening and prior-case use file_search on the same `casepal-knowledge` vector store you connected in Lab 2, and comms has none. Each specialist is a boring, single-purpose CasePal agent. The magic is how they're combined.
 
-   ```text
-   You are the CasePal orchestrator. On every case:
-   1. Call the Extraction specialist first to get the intake JSON.
-   2. Call the Screening specialist to identify gaps against SOP-01 + SOP-03.
-   3. Call the Prior-Case specialist to check institutional memory.
-   4. If the user asked for a communication draft AND Screening returned gaps, call the
-      Comms Drafter with (intake, gaps) to produce the RFI.
-   5. Synthesise ONE JSON reply with sections: intake, screening, prior_cases,
-      recommendation (with recommendation, confidence 0.0-1.0, supporting_evidence[],
-      rationale), draft_communication.
-   6. For HIGH-risk or regulatory-decision requests, apply Lab 3 guardrails.
-   ```
+### Walk 2 — the A2A tool dialog (for reference)
 
-4. Under **Tools & Knowledge**, click **Add → Add tools → Custom → Agent2agent (A2A)**. Add one entry per specialist. The dialog asks for a name, an A2A endpoint, and authentication (Microsoft Entra Agent Identity).
+Under a normal agent's **Tools & Knowledge**, if you click **Add → Add tools → Custom → Agent2agent (A2A)** you'll get this dialog:
 
-   ![A2A tool config dialog: Connect the A2A Tool with a name field, an A2A Agent Endpoint field expecting a URL like https://api.box.com/a2a, and Authentication set to Microsoft Entra Agent Identity. A note explains the calling agent needs the 'Foundry Agent Consumer' role assigned when connecting to another Foundry agent.](screenshots/lab-04/nav-03-a2a-config.png)
+![A2A tool config dialog: Connect the A2A Tool with a name field, an A2A Agent Endpoint field expecting a URL like https://api.box.com/a2a, and Authentication set to Microsoft Entra Agent Identity. A note explains the calling agent needs the 'Foundry Agent Consumer' role assigned when connecting to another Foundry agent.](screenshots/lab-04/nav-03-a2a-config.png)
 
-   > 💡 **A2A requires each specialist to be published as an A2A endpoint.** Foundry doesn't auto-expose agents as A2A servers today; publishing is a facilitator task in a real environment. In this workshop we use the equivalent **function-tool orchestration** pattern from the Builder rail as the practical implementation — see below.
+This is where you'd wire an orchestrator to specialists in the portal — one A2A entry per specialist. Because A2A needs an HTTP endpoint (Foundry agents don't auto-publish one), we use the equivalent function-tool pattern in code — see the Builder rail below.
 
-5. **Chat** → send the compound question:
+### Walk 3 — the orchestrator's delegation instructions
 
-   ```
-   Screen MDR-2026-0129 for completeness, check whether we've reviewed anything similar
-   in the last two years, and draft a query letter to the applicant asking for the missing
-   precision-and-accuracy data for the CRP measurement.
-   ```
+The orchestration behaviour lives in a **prompt** on the orchestrator, not in a wiring diagram. Here's the delegation rule the Builder-rail script uses:
 
-6. Confirm the reply covers **all five sections** (intake, screening, prior_cases, recommendation, draft_communication). Open the **Traces** tab and confirm **all four specialists were called** — not one agent that produced a JSON that *looks* multi-agent.
+![Orchestrator Instructions panel with the delegation rule that calls Extraction, Screening, Prior-Case, and Comms Drafter](screenshots/lab-04/nav-01-instructions.png)
+
+```text
+You are the CasePal orchestrator. On every case:
+1. Call the Extraction specialist first to get the intake JSON.
+2. Call the Screening specialist to identify gaps against SOP-01 + SOP-03.
+3. Call the Prior-Case specialist to check institutional memory.
+4. If the user asked for a communication draft AND Screening returned gaps, call the
+   Comms Drafter with (intake, gaps) to produce the RFI.
+5. Synthesise ONE JSON reply with sections: intake, screening, prior_cases,
+   recommendation (with recommendation, confidence 0.0-1.0, supporting_evidence[],
+   rationale), draft_communication.
+6. For HIGH-risk or regulatory-decision requests, apply Lab 3 guardrails.
+```
+
+**Walk over to the Builder rail below** to see this actually run against the four deployed specialists.
 
 ---
 

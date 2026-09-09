@@ -46,7 +46,7 @@ A **Regulatory-Neutrality** evaluator for CasePal — one that flags any reply m
 
 ## 🟢 Navigator — apply guardrails and review traces
 
-1. Reuse **`casepal-<initials>-knowledge`** from Lab 2. (No new agent needed — we're layering controls onto the same agent.) Extend the agent's Instructions block with the guardrail rules below:
+1. Open your **`casepal-<initials>`** agent from Lab 2. **Extend** the Instructions block by appending the guardrail rules below to what you already have (do not replace — keep the KNOWLEDGE mode rules from Lab 2):
 
    ![Guarded agent Instructions with governance rules layered on top of the Lab 2 knowledge instructions](screenshots/lab-03/nav-01-instructions.png)
 
@@ -110,9 +110,11 @@ A **Regulatory-Neutrality** evaluator for CasePal — one that flags any reply m
 
    ![Foundry Traces tab with Trace / Conversation / Response view tabs and filter chips for Status, Duration, Tokens, Cost, Evaluators, and Annotation](screenshots/lab-03/05-traces-tab.png)
 
-### The bare vs. guarded contrast
+### The bare vs. guarded contrast — walkthrough the pre-deployed demo agents
 
-Send Kai's compound biased prompt to the **bare** `casepal-<initials>-knowledge` agent, then send the **same** prompt to the **guarded** agent. Both refuse the decision — but only the guarded agent explicitly rebuts each bias with corpus-cited counter-evidence and surfaces its evaluator scores.
+You've been progressively enhancing **one** `casepal-<initials>` agent through Labs 0-3, so you don't have a "bare Lab 2" version sitting alongside your guarded one. The facilitator has pre-deployed two comparator agents for exactly this walkthrough: **`casepal-demo-knowledge`** (bare Lab-2 style) and **`casepal-demo-guarded`** (Lab-3 style). Send Kai's compound biased prompt to each in turn.
+
+Both refuse the decision — but only the guarded agent explicitly rebuts each bias with corpus-cited counter-evidence and surfaces its evaluator scores.
 
 **Bare (Lab 2) — refuses, but no evaluator scores:**
 

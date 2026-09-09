@@ -46,20 +46,32 @@ endpoint via `curl`.
 The server persists to an in-memory dict (or SQLite if `MCP_PERSIST_PATH` is set) — enough for demo purposes,
 never for production.
 
-**Facilitator setup (already done for you):** deployed to Azure Container Apps via
-`deploy-mcp.sh` (bash) or `deploy-mcp.ps1` (PowerShell). The endpoint URL is on the workshop info sheet.
+**Facilitator setup (already done for you):** deployed to Azure Container Apps at:
 
-### 🔵 Builder — connect the tool
+```
+https://casepal-case-management.salmongrass-44d04a9c.swedencentral.azurecontainerapps.io/mcp
+```
 
-1. Reuse your **`casepal-<initials>-knowledge`** (or clone it as `casepal-<initials>-mcp`). Update its Instructions to reference the MCP tool:
+You'll use this exact URL in the Navigator and Builder steps below.
+
+### 🟢 Navigator — add the MCP tool to your agent
+
+1. Open your **`casepal-<initials>`** agent from Lab 3. Extend the Instructions block by appending the MCP-lodgement rule:
 
    ![MCP-connected agent Instructions showing 'When the reviewer asks to lodge a case decision, use the casepal-case-management MCP tool. Confirm approval BEFORE any create_case or update_case_status call.'](screenshots/lab-05/nav-01-instructions.png)
 
-2. In the portal, open **Tools & Knowledge** → **+ Add MCP tool**.
-3. Enter:
-   - **Server URL**: (facilitator provides — looks like `https://casepal-mcp-<hash>.azurecontainerapps.io`)
-   - **Auth**: **None** for demo (real deployment would use Managed Identity).
-   - **Approval mode**: **Required for writes** — this is the "always confirm before create/update" contract.
+   ```text
+   When the reviewer asks to lodge a case decision, use the casepal-case-management MCP tool.
+   Confirm approval BEFORE any create_case or update_case_status call. Report the returned
+   case_id back to the reviewer.
+   ```
+
+2. Under **Tools & Knowledge**, click **Add → Add tools → Custom → MCP tool**.
+3. Fill in:
+   - **Name**: `casepal-case-management`
+   - **Server URL**: `https://casepal-case-management.salmongrass-44d04a9c.swedencentral.azurecontainerapps.io/mcp`
+   - **Auth**: **None** (demo — real deployment would use Managed Identity)
+   - **Approval mode**: **Required for writes** (the "always confirm before create/update" contract)
 4. Save. Refresh the tool list — you should see `create_case`, `get_case`, `update_case_status`, `list_open_cases`.
 
    ![Tools panel showing BOTH File search connected to casepal-knowledge AND the MCP tool connected to casepal-case-management with the Azure Container Apps URL](screenshots/lab-05/nav-02-tools-knowledge.png)
@@ -95,7 +107,48 @@ never for production.
 
    ![list_open_cases result showing all cases assigned to wl@agency-demo.test — CMS-2026-1188 (from the hosted-endpoint curl demo), CMS-2026-1189, and CMS-2026-1190 (from this portal session) — all pointing at MDR-2026-0135, all in the same MCP store](screenshots/lab-05/03d1-tool-result.png)
 
-That's Part A.
+That's Part A · Navigator.
+
+### 🔵 Builder — instantiate the same agent + MCP tool in Python
+
+Same behaviour, in code. Open **[`lab5_mcp.py`](../assets/lab5_mcp.py)** or run:
+
+```bash
+cd content/assets
+python lab5_mcp.py
+```
+
+Key pattern — the Foundry Agent SDK exposes `MCPTool`, which you attach to any agent definition:
+
+```python
+from azure.ai.projects import AIProjectClient
+from azure.ai.projects.models import MCPTool, PromptAgentDefinition
+
+MCP_URL = "https://casepal-case-management.salmongrass-44d04a9c.swedencentral.azurecontainerapps.io/mcp"
+
+project = AIProjectClient(endpoint=os.environ["FOUNDRY_PROJECT_ENDPOINT"], credential=DefaultAzureCredential())
+
+mcp_tool = MCPTool(
+    server_url=MCP_URL,
+    server_label="casepal-case-management",
+    require_approval="always",   # match the portal 'Required for writes' setting
+)
+
+agent = project.agents.create_version(
+    agent_name="casepal-<initials>-mcp",
+    definition=PromptAgentDefinition(
+        model="model-router",
+        instructions=INSTRUCTIONS,
+        tools=[mcp_tool],
+    ),
+)
+```
+
+The full script wires the same MCP tool onto an agent, sends Wei Ling's lodgement prompt, catches the `mcp_approval_request` items from the response, submits `mcp_approval_response` for each with `approve=True`, and prints the returned `CMS-2026-<n>` case_id.
+
+**Sample terminal run:**
+
+![Terminal-styled transcript: /healthz sanity check, then POST /chat with the lodgement JSON payload, response returned in 20.3s with case_id CMS-2026-1188; ends with 'Hosted endpoint returned CMS-2026-1188 — same behaviour, programmatic access'](screenshots/lab-05/99-curl-hosted-terminal.png)
 
 ### Behind the scenes (script rail)
 

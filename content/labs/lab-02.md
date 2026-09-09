@@ -65,12 +65,13 @@ The workshop's grounding corpus (`content/knowledge/`) is **entirely synthetic**
 
 ## 🟢 Navigator — wire up a knowledge source
 
-**Prereq:** The facilitator has already uploaded `content/knowledge/**` into a Foundry IQ index named **`casepal-knowledge`** and shared it with the workshop project. If you don't see the index in the picker, ask.
+Keep working on the **same `casepal-<initials>` agent** you built in Labs 0 and 1.
 
-1. Reuse **`casepal-<initials>-intake`** from Lab 1. Duplicate it — call the copy **`casepal-<initials>-knowledge`**.
-2. Update the **Instructions** — replace the intake block with:
+1. Open your **`casepal-<initials>`** agent from Lab 1.
+2. Set **Response format** back to `text` (Lab 1 asked for JSON output; knowledge answers are prose with citations, not JSON).
+3. **Replace** the Instructions block with the knowledge block below — this switches the agent from *structured intake* mode to *grounded knowledge* mode:
 
-   ![Knowledge instructions panel showing 'You are CasePal in KNOWLEDGE mode' block with grounding rules](screenshots/lab-02/nav-01-instructions.png)
+   ![casepal-demo-knowledge Instructions panel: 'You are CasePal in KNOWLEDGE mode...'](screenshots/lab-02/nav-01-instructions.png)
 
 ```text
 You are CasePal in KNOWLEDGE mode. Given a free-text question about a dossier — SOP
