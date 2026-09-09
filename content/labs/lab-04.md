@@ -33,7 +33,7 @@ One agent doing everything gets brittle. Foundry's **Workflows** feature makes m
 
 **📂 This lab, two ways — pick your rail:**
 - 🟢 **Navigator** (portal, no-code) — follow the [🟢 Navigator section](#-navigator--build-the-workflow) below.
-- 🔵 **Builder** (notebook or script) — [`lab4_multiagent.ipynb`](../assets/lab4_multiagent.ipynb) (canonical) or `python content/assets/lab4_multiagent.py`. A concurrent-execution variant lives in `lab4_multiagent_concurrent.py`.
+- 🔵 **Builder** (notebook or script) — [`lab4_multiagent.ipynb`](../assets/lab4_multiagent.ipynb) (canonical) or `python content/assets/lab4_multiagent.py`. Two further variants show the same case with hand-rolled concurrency and with the Microsoft Agent Framework.
 
 > Required today: **all four specialists** + the orchestrator (reusing your Lab 3 agent).
 
@@ -165,12 +165,45 @@ The orchestrator uses file_search on the shared knowledge index — Foundry mode
 
 ## 🔵 Builder — notebook / script
 
+Three Python files solve the **same case** three different ways. They share the same specialist
+instructions, the same knowledge corpus, and the same `MDR-2026-0129` dossier — what differs is
+**who holds the baton**.
+
+| File | Who decides the order | Concurrency | Agents created |
+|---|---|---|---|
+| `lab4_multiagent.py` *(canonical)* | The **model** — an orchestrator picks the tools | Sequential tool calls | orchestrator + 2 |
+| `lab4_multiagent_concurrent.py` | **You**, with `asyncio.gather(...)` | Hand-rolled fan-out | 2 |
+| `lab4_agentframework.py` | **You**, declared as a workflow | `ConcurrentBuilder` fan-out | 3 |
+
+In every version, **Extraction is plain Python** — reading fields out of a JSON record needs no
+model, and keeping it deterministic is what stops the answers being handed to the specialists.
+
+### Approach 1 · orchestrator agent (the canonical lab)
+
 Open **[`lab4_multiagent.ipynb`](../assets/lab4_multiagent.ipynb)** and Run All, or:
 
 ```bash
 cd content/assets
 python lab4_multiagent.py
 ```
+
+```mermaid
+flowchart TD
+    Q["Reviewer's compound question"] --> O{{"Orchestrator agent<br/>decides what to call"}}
+    O -.->|tool call| E["extract_case()<br/><i>plain Python</i>"]
+    O -.->|tool call| S["Screening agent<br/><i>file_search over SOPs</i>"]
+    O -.->|tool call| P["find_prior_cases()<br/><i>plain Python, SOP-04 §3</i>"]
+    O -.->|tool call| C["Comms agent<br/><i>drafts the RFI</i>"]
+    E -.->|result| O
+    S -.->|result| O
+    P -.->|result| O
+    C -.->|result| O
+    O ==> R["One merged JSON<br/>recommendation + confidence + evidence"]
+```
+
+Every arrow is a round-trip: Foundry emits a `function_call`, the script runs the matching
+function, and the result is fed back with `previous_response_id` until the orchestrator is done.
+That is why this version is the slowest — and why the trace is the most interesting.
 
 **Under the hood** — the notebook / script:
 1. Defines the orchestrator plus the Screening and Comms specialists via `PromptAgentDefinition`.
@@ -185,19 +218,43 @@ The specialists do real work, which is what makes the assertions meaningful:
 - **Prior-Case** searches the case corpus using the SOP-04 §3 similarity levels, so `MDR-2026-0122` is found rather than hardcoded.
 - **Comms Drafter** writes the RFI from the gaps Screening actually returned.
 
-Two variants ship alongside it:
-- `lab4_multiagent_concurrent.py` — runs Screening ∥ Prior-Case with `asyncio.gather(...)` once Extraction returns, then drafts the RFI.
-- `lab4_agentframework.py` — the same fan-out expressed with the **Microsoft Agent Framework**. See the section below.
+### Approach 2 · hand-rolled concurrency
+
+`lab4_multiagent_concurrent.py` removes the orchestrator entirely. You call the specialists
+yourself and run the two independent ones at the same time:
+
+```mermaid
+flowchart LR
+    E["extract_case()<br/><i>plain Python</i>"] --> S["Screening agent"]
+    E --> P["find_prior_cases()"]
+    S --> C["Comms agent<br/><i>drafts the RFI</i>"]
+    P --> C
+    C --> R["Result JSON<br/>rule-based recommendation"]
+```
+
+```bash
+python lab4_multiagent_concurrent.py
+```
+
+Screening and Prior-Case sit inside one `asyncio.gather(...)`, so both start before either
+finishes. The recommendation is then a plain `if gaps` rule citing **SOP-01 §4** ("an absent
+required document is queried, never rejected") rather than a model judgement — deterministic
+where determinism is cheap and auditable.
+
+> [!NOTE]
+> The speed-up is modest here. Screening is a network call, but `find_prior_cases` scans 15 local
+> files in milliseconds — so only one side of the fan-out is actually slow. The shape is right;
+> the payoff would be larger if both branches called a model.
 
 📚 **Docs:** [Function calling / tools](https://learn.microsoft.com/en-us/azure/ai-foundry/agents/how-to/tools/function-calling) · [Connected / multi-agent workflows](https://learn.microsoft.com/en-us/azure/ai-foundry/agents/concepts/workflows)
 
 ---
 
-### 🧩 Variant · orchestration with the Microsoft Agent Framework
+### Approach 3 · Microsoft Agent Framework workflow
 
-The orchestrator above lets the **model** decide which specialist to call. The Agent Framework
-takes the opposite approach: *you* declare the topology, and the framework runs it. Same case,
-same instructions, same knowledge corpus — different control model.
+Approach 1 lets the **model** decide which specialist to call. The Agent Framework takes the
+opposite approach: *you* declare the topology, and the framework runs it. Same case, same
+instructions, same knowledge corpus — different control model.
 
 ```bash
 cd content/assets
@@ -209,10 +266,21 @@ Foundry sub-packages arrive with it via `agent-framework-core[all]`.
 
 **The pipeline**
 
+```mermaid
+flowchart LR
+    E["extract_case()<br/><i>plain Python</i>"] --> W
+    subgraph W["ConcurrentBuilder — runs in parallel"]
+        direction TB
+        S["screening agent<br/><i>file_search tool</i>"]
+        P["prior_case agent<br/><i>find_prior_cases tool</i>"]
+    end
+    W --> C["comms agent<br/><i>drafts the RFI</i>"]
+    C --> A["5 assertions"]
 ```
-extract_case()  →  ConcurrentBuilder[ screening ∥ prior_case ]  →  comms drafter
-   (plain Python)        (two agents, in parallel)                    (one agent)
-```
+
+Three agents are created, but only **two run concurrently**. The comms drafter runs afterwards as
+a plain `await`, because it needs the gaps Screening found — you cannot parallelise a step that
+depends on another's output.
 
 1. **Extraction** — plain Python. Reads only the dossier's own fields, so nothing downstream is
    told which document is missing.
@@ -232,10 +300,10 @@ extract_case()  →  ConcurrentBuilder[ screening ∥ prior_case ]  →  comms d
    Prior-Case calls the `find_prior_cases` Python function — the framework generates the tool schema
    from the function signature, so there is no hand-written JSON schema and no `strict=False` dance.
 3. **Comms drafter** receives the intake plus both findings and writes the RFI.
-4. **Assertions** check the derived signals: a precision gap, an SOP-01 citation, `MDR-2026-0122`,
-   and a non-empty draft.
+4. **Assertions** check that both specialists replied, plus the derived signals: a precision gap,
+   an SOP-01 citation, `MDR-2026-0122`, and a non-empty draft.
 
-**What you should see** (about 50 seconds):
+**What you should see** (about 30–50 seconds):
 
 ```text
 --- specialist ---
@@ -263,7 +331,8 @@ Lab 4 (Agent Framework variant) passed ✅
 | Concurrency | Sequential tool calls | True parallel fan-out |
 | Agent lifecycle | `create_version` + `cleanup` | Ephemeral — nothing to delete |
 | Tool schemas | Hand-written JSON | Inferred from the function signature |
-| Typical runtime | 2–4 min | ~50 s |
+| Credential | sync `DefaultAzureCredential` | async (`azure.identity.aio`) |
+| Typical runtime | 2–4 min | 30–50 s |
 | Best when | The path varies per case | The path is known and repeatable |
 
 📚 **Docs:** [Agent Framework orchestrations](https://learn.microsoft.com/en-us/agent-framework/workflows/orchestrations/) — Sequential, Concurrent, Handoff, Group Chat, and Magentic, plus human-in-the-loop via `with_request_info(...)`.
