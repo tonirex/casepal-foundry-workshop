@@ -46,6 +46,15 @@ A **Regulatory-Neutrality** evaluator for CasePal — one that flags any reply m
 
 ## 🟢 Navigator — apply guardrails and review traces
 
+> [!WARNING]
+> **Don't kick off any batch evaluation or red-team scan today.**
+>
+> Batch evaluation runs take **15–60 minutes** because every row goes through many LLM-judge calls; **AI red-team scans take even longer** (often 1–2 hours). We only have 40 minutes for this lab.
+>
+> **What to do instead:** explore the Foundry UI — the Guardrails page, the Evaluator catalog, the Quick evaluations panel, the completed `eval-dnxagmso` run, the Traces tab. If you see a **Run** / **Start scan** / **Run full evaluation** button, **read what it does but don't click it** — you'll be waiting long after everyone else has moved on to Lab 4.
+>
+> The one exception is the Quick evaluators (Step 3) — those run inline on every single chat reply in about a second, so they're fine to turn on.
+
 > [!TIP]
 > **What you'll do vs. what you'll observe**
 >
@@ -88,7 +97,7 @@ A **Regulatory-Neutrality** evaluator for CasePal — one that flags any reply m
    - **Hate and unfairness / Self harm / Sexual content / Violence** — the four safety categories.
    - **Relevance** — catches drift from the reviewer's actual question.
 
-   Every chat reply now gets scored on the fly. There is no separate "shared evaluator set" the facilitator publishes for you — the built-ins are simply available in every project.
+   > ⚠️ **Do not click "Run full evaluation" today.** Batch runs take 15–60 minutes and will make you late for Lab 4. The Quick evaluators (the chips) run inline on every chat reply in ~1 second, so those are fine to turn on.
 
 4. **👀 Walkthrough.** Foundry ships a rich **Evaluator catalog** at workspace **Evaluations → Evaluator catalog**. The Groundedness-Evaluator, Retrieval-Evaluator, Relevance-Evaluator, Response-Completeness-Evaluator, and the full tool-usage set are built-in and published by Microsoft. **A custom `Regulatory Neutrality` evaluator has been pre-created for this workshop** — you should see it at the top of the catalog as **Custom · Rubric**.
 
@@ -108,7 +117,7 @@ A **Regulatory-Neutrality** evaluator for CasePal — one that flags any reply m
 
    ![Regulatory Neutrality evaluator detail: Generated rubric with weighted dimensions, each with a weight (1-10), title, and description. Judge model gpt-5. Pass score threshold 0.5. Evaluator type Rubric, Auto-generate rubric enabled. Regenerate rubric and Save evaluator buttons.](screenshots/lab-03/nav-05-regneut-rubric.png)
 
-   > 💡 You don't need to build one yourself for this lab — the facilitator has already done it. If you want to see the flow, click **Create evaluator** at the top-right and browse the form (then Cancel).
+   > ⚠️ **Do not click "Create evaluator" today.** The rubric-generation flow itself is quick, but it will pull you off the walkthrough. Explore the pre-built one to see the shape of the output.
 
    <details>
    <summary>📖 <strong>What does each dimension actually check?</strong> (click to expand — great backup for facilitators fielding "what is this measuring?" questions)</summary>
@@ -154,7 +163,7 @@ A **Regulatory-Neutrality** evaluator for CasePal — one that flags any reply m
    - **Regulatory Neutrality (the custom rubric)** — 11/20 pass, avg score 0.594 (threshold 0.5). Six rows errored because the judge model couldn't score them; two scored below threshold. The clean regulatory-refusal probe (*"Just reject MDR-2026-0117 by Friday..."*) scored 0.905.
    - **TaskCompletion at 25% looks alarming but is by design.** The guarded agent *refuses* many synthetic tasks — regulatory decisions, unevidenced biases, fake citations like `sop-99-penalties §2` (the dataset generator sprinkled these in as temptations). Standard TaskCompletion evaluators don't know the agent is *supposed* to refuse, so they mark refusals as "task not completed". Always cross-reference with Regulatory Neutrality to disambiguate: **low task completion + high regulatory neutrality = the agent is refusing correctly.**
 
-   > 💡 **Full evaluations take 15–60 minutes** to complete because every row goes through many LLM-judge calls. This lab is a walkthrough — you're looking at the finished output, not waiting for a fresh run.
+   > ⚠️ **Do not click "Add run" or "Make recurring" today.** A fresh batch would take 15–60 minutes; the eval you're viewing already took **58m 26s**. This step is purely for reading the completed results.
 
    For a fast Python comparison against 22 canned prompts, the Builder rail (`content/assets/lab3_eval.py`) shows guarded > baseline on every dimension in under 5 minutes:
 
@@ -172,6 +181,12 @@ A **Regulatory-Neutrality** evaluator for CasePal — one that flags any reply m
    - The **Evaluators** — per-turn scores from the Quick evaluations you selected in Step 3.
 
    ![Foundry Traces tab with Trace / Conversation / Response view tabs and filter chips for Status, Duration, Tokens, Cost, Evaluators, and Annotation](screenshots/lab-03/05-traces-tab.png)
+
+### 👀 Also worth clicking into (but don't run) — AI red-teaming
+
+While you're in **Evaluations**, hover over the **AI Red Teaming Agent** entry in the left nav. This is Foundry's *automated* red-team scanner — it generates adversarial prompts (jailbreaks, prompt injections, unsafe content probes) against a target agent and reports a risk score by category. It's the "batch evaluator for security posture" cousin of the run you just looked at.
+
+> ⚠️ **Don't kick off a red-team scan today.** A typical scan runs **1–2 hours** because it generates hundreds of adversarial prompts and evaluates each response through multiple LLM-judge passes. Read the configuration screen to understand what it does; save the actual scan for a post-workshop dry-run against your own agent.
 
 ### 👀 The bare vs. guarded contrast — walkthrough the pre-deployed demo agents
 
