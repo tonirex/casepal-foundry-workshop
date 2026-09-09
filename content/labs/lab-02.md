@@ -169,9 +169,13 @@ If any behaviour is missing, revisit the "Grounding rules" in Instructions or ch
 
 ## 🧯 Troubleshooting
 
+- **Agent says "No supporting SOP or reference is available in the current corpus" even for basic prompts like Class C completeness?** This is Foundry IQ's Extractive-data output mode being conservative under the default *Minimal* Retrieval reasoning effort. Two knobs to try on the Knowledge Base page:
+  1. Bump **Retrieval reasoning effort** from *Minimal* → *Low* → *Medium* (Medium is more aggressive at surfacing chunks the raw index has).
+  2. Add explicit **Retrieval instructions** describing the corpus, e.g. *"When the question is about SOP-01, SOP-02, or a case-A2024-xxx prior case, retrieve from casepal-knowledge-src."*
+  The raw AI Search underneath (`casepal-workshop-srch`) has the content; the retrieval reasoner just needs to trust it.
 - **Agent invents a case ID for SkinLens-AI?** Your Instructions aren't strict enough on the "no confabulation" rule. Re-paste block, emphasise the "No prior similar…" template.
-- **Agent uses web search instead of the index?** Detach the web-search tool. Only the Foundry IQ index should be enabled.
-- **No results returned even for the SOP prompts?** Index not shared with your project, or embedding model not deployed. Ask the facilitator.
+- **Agent uses web search instead of the knowledge base?** Detach the web-search tool. Only the Foundry IQ knowledge base should be enabled.
+- **Fewer files than expected in the KB source?** The Foundry IQ file uploader occasionally drops files silently under load. Open the source and add the missing files via the drop area, then Save.
 - **Agent cites the correct SOP but paraphrases without quoting?** Add: *"Quote the exact SOP section number in every citation (e.g. sop-01 §3.3), not just the file name."*
 
 ---
