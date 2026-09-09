@@ -36,8 +36,8 @@ Three overlapping controls:
 
 | Control | What it catches | Where it lives |
 |---|---|---|
-| **Content Safety guardrails** | Toxic, sexual, self-harm, prompt-injection content | Foundry portal → Agent → **Guardrails** tab |
-| **Evaluators** (batch + inline) | Groundedness (does the reply match retrieved sources?), Safety score, and a custom **Regulatory-Neutrality** check | Foundry portal → **Evaluate** |
+| **Content Safety guardrails** | Prompt-injection, hate, self-harm, sexual, violence, protected materials | Foundry portal → **Guardrails** (workspace-level, applied per model) |
+| **Evaluators** (batch + inline) | Groundedness (does the reply match retrieved sources?), Safety score, and a custom **Regulatory-Neutrality** check | Foundry portal → **Evaluation** tab on the agent |
 | **Tracing** (Application Insights) | Model calls, tool calls, guardrail intercepts, evaluator scores per turn | Foundry portal → **Traces** tab (needs App Insights connection, facilitator sets this up) |
 
 The **Regulatory-Neutrality** evaluator is custom-built for CasePal. It flags any reply that:
@@ -53,14 +53,14 @@ The **Regulatory-Neutrality** evaluator is custom-built for CasePal. It flags an
 
    ![Guarded agent Instructions with governance rules layered on top of the Lab 2 knowledge instructions](screenshots/lab-03/nav-01-instructions.png)
 
-2. Open the **Guardrails** tab of your agent. Enable:
-   - **Prompt shield** (input filter for jailbreaks / prompt injection).
-   - **Content safety** — set Toxicity / Sexual / Self-harm to *Medium* or stricter.
-   - **Grounded facts** — enable (input + output).
+2. Look at what's already protecting your agents. Guardrails in Foundry are configured **at the workspace + model level** — there is no per-agent toggle to enable. Open the left-nav **Guardrails** page and click **Microsoft.DefaultV2**. This is the default guardrail policy applied automatically to every model deployed in this project (`model-router`, `gpt-5`, `gpt-5-mini`, `text-embedding-3-small`). It includes three protection categories:
+   - **Jailbreak (1)** — Prompt Shield. This intercepts prompt-injection attempts at the model boundary. It is what fired for MDR-2026-0130 in Lab 1 (AI Quality dropped to 20%).
+   - **Content safety (4)** — Hate, self-harm, sexual, violence — at the default medium threshold.
+   - **Protected materials (2)** — Copyright and code-plagiarism detection.
 
-   The workspace-level Guardrails page shows the Microsoft.DefaultV2 guardrail already applied to the deployed models (`model-router`, `gpt-5`, `gpt-5-mini`, `text-embedding-3-small`):
+   ![Microsoft.DefaultV2 guardrail detail panel showing Jailbreak (1), Content safety (4), Protected materials (2) applied to model-router, gpt-5, gpt-5-mini, and text-embedding-3-small](screenshots/lab-03/08-guardrails-defaultv2.png)
 
-   ![Workspace Guardrails page showing Microsoft.DefaultV2 applied to model-router, gpt-5, gpt-5-mini, and text-embedding-3-small](screenshots/lab-03/08-guardrails-workspace.png)
+   You don't have to enable anything — the defaults are on for every model in this workshop. To customise (e.g. tighten thresholds or scope a policy to a single agent), you'd click **Create** and assign the new policy to a specific model or agent. The layered story we're building is: **workspace guardrails + agent Instructions rules together** produce the behaviour you're about to see.
 
 3. Open the **Evaluate** tab. Add the shared evaluator set the facilitator prepared:
    - `groundedness` (built-in)
@@ -140,7 +140,7 @@ If any behaviour is missing, check the guardrail rules in Instructions, verify `
 - **Regulatory-Neutrality evaluator not visible?** Facilitator needs to publish it to the shared project. Ask.
 - **Traces tab empty?** App Insights connection not created. Facilitator action (Foundry User cannot create connections). Traces are optional for the checkpoint.
 - **Groundedness score low?** Agent is answering without citing the index. Re-visit Lab 2 Instructions.
-- **Content Safety blocking legitimate dossier text** (rare)? Loosen the relevant threshold only if a synthetic case is tripping it — do not disable *Prompt Shield*.
+- **Content Safety blocking legitimate dossier text** (rare)? Loosen the relevant threshold by creating a **custom guardrail** on the workspace Guardrails page and assigning it to your model/agent — do not weaken **Prompt Shield**.
 
 ---
 
