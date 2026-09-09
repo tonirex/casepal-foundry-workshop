@@ -18,6 +18,7 @@ if str(_here) not in sys.path:
 from common.casepal_common import (
     COMMS_INSTRUCTIONS,
     SCREENING_INSTRUCTIONS,
+    agent_name,
     build_vector_store,
     cleanup,
     create_agent,
@@ -28,8 +29,9 @@ from lab4_multiagent import SPECIALISTS, draft_rfi, extract_case, find_prior_cas
 
 async def main():
     vs_id = build_vector_store(".", name="casepal-knowledge")
-    screening = create_agent("casepal-screening", SCREENING_INSTRUCTIONS, tools=[file_search_tool(vs_id)])
-    comms = create_agent("casepal-comms", COMMS_INSTRUCTIONS)
+    # Same participant-scoping rule as lab4_multiagent.py — see notes there.
+    screening = create_agent(agent_name("screening"), SCREENING_INSTRUCTIONS, tools=[file_search_tool(vs_id)])
+    comms = create_agent(agent_name("comms"), COMMS_INSTRUCTIONS)
     SPECIALISTS.update(screening=screening, comms=comms)
     try:
         intake = extract_case("MDR-2026-0129")

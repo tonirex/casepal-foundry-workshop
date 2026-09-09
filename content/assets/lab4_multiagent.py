@@ -17,6 +17,7 @@ from common.casepal_common import (
     COMMS_INSTRUCTIONS,
     ORCHESTRATOR_INSTRUCTIONS,
     SCREENING_INSTRUCTIONS,
+    agent_name,
     build_vector_store,
     cleanup,
     create_agent,
@@ -133,10 +134,14 @@ TOOLS = [
 
 def main():
     vs_id = build_vector_store(".", name="casepal-knowledge")
-    screening = create_agent("casepal-screening", SCREENING_INSTRUCTIONS, tools=[file_search_tool(vs_id)])
-    comms = create_agent("casepal-comms", COMMS_INSTRUCTIONS)
+    # Scope every agent name to the participant's initials via agent_name(...)
+    # so 20 participants running this concurrently don't stack versions on the
+    # same three shared agents. This also keeps the script well clear of the
+    # pre-deployed casepal-demo-* agents (Navigator rail).
+    screening = create_agent(agent_name("screening"), SCREENING_INSTRUCTIONS, tools=[file_search_tool(vs_id)])
+    comms = create_agent(agent_name("comms"), COMMS_INSTRUCTIONS)
     SPECIALISTS.update(screening=screening, comms=comms)
-    agent = create_agent("casepal-orchestrator", ORCHESTRATOR_INSTRUCTIONS, tools=TOOLS)
+    agent = create_agent(agent_name("orchestrator"), ORCHESTRATOR_INSTRUCTIONS, tools=TOOLS)
     try:
         # The orchestrator inherits Lab 0's consent rule ("greet + ask consent on
         # first message"). Prepend an in-band consent affirmation so the first

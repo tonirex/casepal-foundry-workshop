@@ -474,6 +474,12 @@ def cleanup(*agents):
     for a in agents:
         if a is None:
             continue
+        # Belt-and-suspenders guard: never touch the pre-deployed casepal-demo-*
+        # agents even if a script bug ever passes one here by accident. Cleanup is
+        # for versions the current script owns (participant-scoped names).
+        name = getattr(a, "name", "")
+        if name.startswith("casepal-demo-") or name.startswith("casepal-workshop-"):
+            continue
         try:
             api.delete_version(agent_name=a.name, agent_version=a.version)
         except Exception:
