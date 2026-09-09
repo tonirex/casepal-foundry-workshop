@@ -95,7 +95,7 @@ never for production.
 
    ![list_open_cases result showing all cases assigned to wl@agency-demo.test — CMS-2026-1188 (from the hosted-endpoint curl demo), CMS-2026-1189, and CMS-2026-1190 (from this portal session) — all pointing at MDR-2026-0135, all in the same MCP store](screenshots/lab-05/03d1-tool-result.png)
 
-8. **Copy the case_id from Test 5** — paste to validate.
+8. **Note the returned `case_id`** (looks like `CMS-2026-<n>`). You'll use it in the next section — the **✅ Checkpoint** — to self-check the whole approval flow end-to-end.
 
 ### Behind the scenes (script rail)
 
@@ -138,12 +138,25 @@ and the portal case (CMS-2026-1190) — visual proof that they hit the same MCP 
 
 ---
 
-## ✅ Checkpoint
+## ✅ Checkpoint — reflect on what you observed
 
-Paste your **case_id** from Part A. The check passes when:
-- The ID matches the pattern `CMS-2026-<digits>`.
-- Calling `get_case(<your_id>)` returns a case with `priority: "medium"` and `follow_up_owner` set to what you provided.
-- Trace shows an **approval step** was surfaced and confirmed before the write.
+Nothing to paste. Look at the returned `case_id`, the trace of the lodgement turn, and the `list_open_cases` output. Confirm the behaviours below.
+
+**What you should have observed**
+
+- **The returned case_id matches `CMS-2026-<digits>`** — a real record in the mock case-management store.
+- **`get_case(<your_id>)` returns a case** with `priority: "medium"` and `follow_up_owner` set to what you provided (`wl@agency-demo.test`). The condition text is preserved verbatim in the note.
+- **The trace shows an approval step was surfaced and confirmed before the write.** You should see the `create_case` proposal, a *Request pending approval* signal, then the `Request has been approved` marker, then the tool result. If the write happened without an approval step, the Approval mode setting is *Auto* — flip it to *Required for writes* and try again.
+- **`list_open_cases` returned your just-created case.** If the facilitator ran the Part B curl demo earlier, that case is in the same list too — visual proof that portal chat and the hosted API hit the same store.
+
+**Learning points**
+
+- **Approvals are just structured pauses.** MCP + Foundry's approval mode gives you a controllable seam between an agent's *intent to write* and the *actual write*. That's the design pattern for high-consequence actions — much cleaner than "trust the model to check itself".
+- **Reads don't have to require approval.** `list_open_cases` is a read; in a production deployment you'd toggle its approval requirement off. The demo leaves them all approval-required so the flow is visible.
+- **Hosting doesn't change the agent.** The same agent-reference works from a hosted `/chat` endpoint, from the portal, from a notebook, and from a downstream integration. The MCP tool, the approval semantics, and the Foundry evaluators come along for free.
+- **Model-router keeps deciding.** For a routine lodgement, router likely picked a fast model. For a complex reasoning turn earlier in the day, it may have picked `gpt-5.6-luna`. Cost and latency track complexity without any client-side steering.
+
+If the case_id didn't come back, look at the MCP server logs (Container App Log stream) — the MCP tool may be pointing at a stale URL or an unhealthy endpoint.
 
 ## 🧯 Troubleshooting
 

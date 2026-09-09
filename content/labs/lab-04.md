@@ -185,17 +185,28 @@ A concurrent variant (`lab4_multiagent_concurrent.py`) shows how to run Screenin
 
 ---
 
-## ✅ Checkpoint
+## ✅ Checkpoint — reflect on what you observed
 
-Paste the orchestrator's synthesised reply for the compound question. The check passes when:
-- The reply contains all five sections: `intake`, `screening`, `prior_cases`, `recommendation`, `draft_communication`.
-- `intake.case_id == "MDR-2026-0129"`.
-- `intake.documents_missing_for_class` includes `"09-precision"`.
-- `prior_cases.sample_case_ids` includes `"MDR-2026-0122"` (the applicant's prior BloodScan-X submission).
-- `recommendation.recommendation == "query"`.
-- `recommendation.supporting_evidence` cites `sop-01` AND references the prior case.
-- `draft_communication` is a plausible, professional RFI that references SOP-01 §3.2 and asks for CRP precision data.
-- Trace shows **all four** specialist tool calls fired.
+Nothing to paste. Look at the orchestrator's synthesised reply and the trace, and confirm the behaviours below.
+
+**What you should have observed**
+
+- **The reply contains all five sections**: `intake`, `screening`, `prior_cases`, `recommendation`, `draft_communication` (naming may vary — some orchestrators produce `prior_case_check` or `draft_query_letter`; the semantic content is what matters).
+- **Intake correctness** — `case_id` reads `MDR-2026-0129`, `documents_missing_for_class` includes `09-precision`.
+- **Prior-case hit** — `MDR-2026-0122` (the applicant's earlier BloodScan-X submission) appears among the sample case IDs.
+- **Recommendation** — `recommendation` is `query` (or a synonym like `query_applicant`, `request_information`).
+- **Supporting evidence** cites `sop-01` (or a §3.2 anchor) AND references the prior case.
+- **Draft communication** — a plausible, professional RFI addressed to BloodDx Ltd, references SOP-01 §3.2, asks for CRP precision-and-accuracy data.
+- **The trace shows all four specialist tool calls** fired: Extraction → Screening → Prior-Case → Comms Drafter.
+
+**Learning points**
+
+- **Orchestration is a control pattern, not a model feature.** The compound question is answered by four narrow specialists coordinated by an orchestrator with a delegation rule. Each specialist has its own tight prompt and its own guardrails.
+- **Evidence-based decision support** ≠ opinion. The recommendation object carries `supporting_evidence` and `rationale`; without those, it's just a chatbot verdict.
+- **Confidence should reflect completeness.** A missing precision-and-accuracy attachment should knock confidence down (typically to 0.7–0.8), not sit at 1.0. If your orchestrator confidently claims 1.0 with `09-precision` missing, the delegation rule needs strengthening.
+- **Parallelism is available.** The concurrent variant (`lab4_multiagent_concurrent.py`) fires Screening + Prior-Case + Comms Drafter in parallel because they're independent — a real production win once you've established the pattern.
+
+If any of the four tool calls are missing from the trace, the orchestrator picked a shortcut — tighten the delegation rule. If a section is missing from the reply, the orchestrator dropped it during synthesis — enumerate the JSON shape more explicitly in Instructions.
 
 ## 🧯 Troubleshooting
 
