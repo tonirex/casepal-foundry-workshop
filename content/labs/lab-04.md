@@ -187,9 +187,86 @@ The specialists do real work, which is what makes the assertions meaningful:
 
 Two variants ship alongside it:
 - `lab4_multiagent_concurrent.py` — runs Screening ∥ Prior-Case with `asyncio.gather(...)` once Extraction returns, then drafts the RFI.
-- `lab4_agentframework.py` — the same fan-out expressed with the **Microsoft Agent Framework**: `ConcurrentBuilder(participants=[screening, prior_case])`, agents created with `FoundryChatClient.as_agent(...)`. No agent version lifecycle to clean up, and a plain Python function can be passed straight in as a tool.
+- `lab4_agentframework.py` — the same fan-out expressed with the **Microsoft Agent Framework**. See the section below.
 
-📚 **Docs:** [Function calling / tools](https://learn.microsoft.com/en-us/azure/ai-foundry/agents/how-to/tools/function-calling) · [Connected / multi-agent workflows](https://learn.microsoft.com/en-us/azure/ai-foundry/agents/concepts/workflows) · [Agent Framework orchestrations](https://learn.microsoft.com/en-us/agent-framework/workflows/orchestrations/)
+📚 **Docs:** [Function calling / tools](https://learn.microsoft.com/en-us/azure/ai-foundry/agents/how-to/tools/function-calling) · [Connected / multi-agent workflows](https://learn.microsoft.com/en-us/azure/ai-foundry/agents/concepts/workflows)
+
+---
+
+### 🧩 Variant · orchestration with the Microsoft Agent Framework
+
+The orchestrator above lets the **model** decide which specialist to call. The Agent Framework
+takes the opposite approach: *you* declare the topology, and the framework runs it. Same case,
+same instructions, same knowledge corpus — different control model.
+
+```bash
+cd content/assets
+python lab4_agentframework.py
+```
+
+No extra install: `agent-framework` is already in `requirements.txt`, and the orchestration and
+Foundry sub-packages arrive with it via `agent-framework-core[all]`.
+
+**The pipeline**
+
+```
+extract_case()  →  ConcurrentBuilder[ screening ∥ prior_case ]  →  comms drafter
+   (plain Python)        (two agents, in parallel)                    (one agent)
+```
+
+1. **Extraction** — plain Python. Reads only the dossier's own fields, so nothing downstream is
+   told which document is missing.
+2. **Concurrent fan-out** — two agents run in parallel against the same intake:
+
+   ```python
+   screening  = client.as_agent(name="screening",  instructions=SCREENING_INSTRUCTIONS,
+                                tools=client.get_file_search_tool(vector_store_ids=[vs_id]))
+   prior_case = client.as_agent(name="prior_case", instructions=PRIOR_CASE_INSTRUCTIONS,
+                                tools=find_prior_cases)
+
+   fan_out = ConcurrentBuilder(participants=[screening, prior_case], output_from="all").build()
+   result  = await fan_out.run(json.dumps(intake))
+   ```
+
+   Screening searches the SOP corpus and *derives* the missing precision evidence from SOP-01 §3.2.
+   Prior-Case calls the `find_prior_cases` Python function — the framework generates the tool schema
+   from the function signature, so there is no hand-written JSON schema and no `strict=False` dance.
+3. **Comms drafter** receives the intake plus both findings and writes the RFI.
+4. **Assertions** check the derived signals: a precision gap, an SOP-01 citation, `MDR-2026-0122`,
+   and a non-empty draft.
+
+**What you should see** (about 50 seconds):
+
+```text
+--- specialist ---
+{"count":1,"sample_case_ids":["MDR-2026-0122"],"similarity_note":"Closest match by SOP-04 §3: same applicant."}
+
+--- specialist ---
+{ "gaps": [ "Precision, accuracy, and repeatability data for the claimed CRP measurement are not listed ...
+
+--- comms draft ---
+Subject: [MDR-2026-0129] Request for information ...
+
+Lab 4 (Agent Framework variant) passed ✅
+```
+
+> [!IMPORTANT]
+> **`output_from="all"` is not optional here.** Without it the workflow returns only *one*
+> participant's result, so the other specialist's findings are silently dropped — and any
+> assertion about them passes or fails depending on which output happened to surface.
+
+**Which one should you reach for?**
+
+| | Orchestrator (`lab4_multiagent.py`) | Workflow (`lab4_agentframework.py`) |
+|---|---|---|
+| Who decides the order | The model | You, in code |
+| Concurrency | Sequential tool calls | True parallel fan-out |
+| Agent lifecycle | `create_version` + `cleanup` | Ephemeral — nothing to delete |
+| Tool schemas | Hand-written JSON | Inferred from the function signature |
+| Typical runtime | 2–4 min | ~50 s |
+| Best when | The path varies per case | The path is known and repeatable |
+
+📚 **Docs:** [Agent Framework orchestrations](https://learn.microsoft.com/en-us/agent-framework/workflows/orchestrations/) — Sequential, Concurrent, Handoff, Group Chat, and Magentic, plus human-in-the-loop via `with_request_info(...)`.
 
 ---
 

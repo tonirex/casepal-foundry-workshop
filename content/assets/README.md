@@ -45,6 +45,10 @@ python lab1_intake.py
 python lab2_rag.py
 python lab3_eval.py
 python lab4_multiagent.py
+
+# Optional Lab 4 variants
+python lab4_multiagent_concurrent.py   # hand-rolled asyncio fan-out
+python lab4_agentframework.py          # Microsoft Agent Framework ConcurrentBuilder
 ```
 
 All scripts use `FOUNDRY_PROJECT_ENDPOINT`, `FOUNDRY_MODEL_NAME` (default `model-router`), and `INITIALS`. The notebooks are the canonical Builder artefacts; scripts mirror the same source for facilitators who prefer terminals.
