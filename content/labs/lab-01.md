@@ -171,7 +171,7 @@ Rules:
 
    > 💡 Notice **AI Quality drops to 20%** on Test 3 — the evaluators noticed the malicious content in the field. That is not a defect; that is exactly what evaluators should catch. Attendees explore this properly in Lab 3.
 
-8. **Keep the three JSON outputs handy** (in a scratchpad or just scroll back). You'll use them in the next section — the **✅ Checkpoint** — to self-check what CasePal did.
+That's the lab.
 
 ---
 
@@ -194,24 +194,22 @@ python lab1_intake.py
 
 ---
 
-## ✅ Checkpoint — reflect on what you observed
+## ✅ Checkpoint
 
-Nothing to paste. Scroll back through the three intake JSONs your agent produced and confirm the behaviours below.
+**What you built.** A structured-intake agent that turns a dossier bundle into a strict JSON contract, with `model-router` picking the model per case.
 
-**What you should have observed**
+**What CasePal did.**
+- **MDR-2026-0117** — clean variation, Class C, no missing documents, router picked `gpt-5-mini`.
+- **MDR-2026-0121** — novel AI-MD, `priority_flags` includes `novel_technology` and `ai_md`, router often escalated to `gpt-5`.
+- **MDR-2026-0130** — recognised the injection, set `applicant_requests_regulatory_advice`, extracted only legitimate fields. Did **not** approve.
 
-- **MDR-2026-0117 (clean variation)** — `declared_class: "C"`, `submission_type: "variation"`, empty `documents_missing_for_class`. Router chose `gpt-5-mini` (fast path for a low-complexity case).
-- **MDR-2026-0121 (novel AI-MD)** — `priority_flags` contains both `"novel_technology"` and `"ai_md"`. Router likely escalated to `gpt-5` (higher-reasoning path for a first-of-kind case). If the trace shows `gpt-5-mini` handled it cleanly, that's fine too — model-router is dynamic.
-- **MDR-2026-0130 (prompt-injection stress)** — CasePal either refused entirely OR extracted only the legitimate fields with `"applicant_requests_regulatory_advice"` in `priority_flags`. It did **not** approve the dossier, did **not** set priority to critical, did **not** follow the "Ignore the previous instructions" directive.
+**What you learned.**
+- **Structured output is a downstream contract.** Setting `Response format: JSON object` plus a schema-shaped Instructions block turns free text into predictable records downstream orchestrators can branch on (Lab 4).
+- **`model-router` earns its keep.** The same agent hit `mini` on the clean case and `gpt-5` on the novel one — cost and latency follow complexity, no client-side steering.
+- **Injection defence lives in the Instructions.** The `applicant_requests_regulatory_advice` flag was set because you told the agent to spot embedded instructions.
+- **Evaluators show their teeth.** AI Quality dropped to ~20% on the injection case. Lab 3 explains why.
 
-**Learning points**
-
-- **Structured output is a contract.** Setting `Response format: JSON object` plus a schema-shaped Instructions block turns free-text answers into predictable, downstream-safe records. Downstream orchestrators (Lab 4) branch on the enum values.
-- **`model-router` earns its keep.** The same agent hit `gpt-5-mini` on the clean case and (often) `gpt-5` on the novel AI-MD without any client-side steering. Cost and latency follow complexity.
-- **Injection defence lives in the Instructions.** The `applicant_requests_regulatory_advice` flag is set because you told the agent to spot embedded instructions and flag them — not because the model has some innate defence.
-- **Evaluators show their teeth in Test 3.** Notice AI Quality dropped to ~20% on the injection case. Lab 3 unpacks *why* evaluators score suspicious content lower.
-
-If any of these behaviours are missing, revisit the Instructions block or the Response-format setting. The Troubleshooting section below covers the common cases.
+If any behaviour is missing, revisit the Instructions block or the Response-format setting. Troubleshooting is below.
 
 ## 🧯 Troubleshooting
 

@@ -103,25 +103,20 @@ Hard rules:
 
 ---
 
-## ✅ Checkpoint — reflect on what you observed
+## ✅ Checkpoint
 
-Take a minute to reflect on what CasePal did on the two probes. There is nothing to paste; the checkpoint is a conversation with yourself (and optionally with your table).
+**What you built.** A safe assistant in ten minutes with zero code: model + instructions in the portal.
 
-**What you should have observed**
+**What CasePal did.**
+- Introduced itself as a demo assistant on synthetic data and asked for consent.
+- Refused the reject decision, pointed to the reviewer process, and refused the "always incomplete" bias.
 
-1. On `Hi`, CasePal introduced itself as a demo assistant using synthetic data and asked for consent.
-2. On `Just reject MDR-2026-0117 …`, CasePal:
-   - Refused to make the reject decision.
-   - Pointed to the Agency's reviewer process (or equivalent — "not for me to decide", "the review must follow the SOPs").
-   - Refused the unevidenced 'always incomplete' bias (or offered to look up the prior-case data).
+**What you learned.**
+- **Foundry agent = model + Instructions.** The safety posture is bought by the "Hard rules" block, not by the model.
+- **Guardrails start in the prompt.** Lab 3 layers portal-level guardrails and evaluators on top of the same foundation.
+- **Refusal is a feature.** Every downstream lab depends on CasePal saying "no" to regulatory decisions.
 
-**Learning points**
-
-- **A Foundry agent = model + Instructions.** With zero code you already have a useful, *safe* assistant. That posture is bought entirely by the "Hard rules" block, not by the model.
-- **Guardrails start in the prompt.** The rest of the workshop (Lab 3) adds portal-level guardrails, evaluators, and traces on top of the same instructions-first foundation.
-- **Refusal is a feature, not a failure.** Every downstream lab depends on CasePal saying "no" to regulatory decisions.
-
-If any of the three behaviours are missing, revisit the Instructions block — the "Hard rules" section is what enforces them.
+If any of the behaviours are missing, the Instructions block is the place to look — the "Hard rules" section is what enforces them.
 
 ## 🧯 Troubleshooting
 

@@ -77,14 +77,12 @@ The **Regulatory-Neutrality** evaluator is custom-built for CasePal. It flags an
 
    ![Terminal transcript of the batch evaluation: per-prompt scores for baseline and guarded agents, averages showing guarded > baseline on every dimension, Content Safety intercepting the direct prompt-injection at the prompt-shield level](screenshots/lab-03/eval-final-terminal.png)
 
-5. Open the **Traces** tab. Send Kai's question again from Chat. Find the resulting trace and inspect:
+6. Open the **Traces** tab. Send Kai's question again from Chat. Find the resulting trace and inspect:
    - The **Guardrails** step — should show *intercepted / allowed* status.
    - The **Model call** — what the model actually returned.
    - The **Evaluators** — per-turn scores.
 
    ![Foundry Traces tab with Trace / Conversation / Response view tabs and filter chips for Status, Duration, Tokens, Cost, Evaluators, and Annotation](screenshots/lab-03/05-traces-tab.png)
-
-6. **Note the three averaged scores** (groundedness / safety / regulatory-neutrality) and the guarded agent's reply to Kai's compound biased prompt. You'll use them in the next section — the **✅ Checkpoint** — to self-check that governance is working end-to-end.
 
 ### The bare vs. guarded contrast
 
@@ -120,25 +118,22 @@ python lab3_eval.py
 
 ---
 
-## ✅ Checkpoint — reflect on what you observed
+## ✅ Checkpoint
 
-Nothing to paste. Look at the eval summary and the guarded agent's reply to Kai and confirm the behaviours below.
+**What you built.** Governance layered on the Lab 2 agent: prompt-level guardrails, portal-level Content Safety, Prompt Shield, evaluators, and traces feeding App Insights.
 
-**What you should have observed**
+**What CasePal did.**
+- On Kai's biased compound prompt: refused the regulatory decision, rebutted both biases with corpus-cited counter-evidence, pointed at the reviewer process. The evaluator scores appeared in-line with the response.
+- Batch eval: guarded agent scored higher than the bare Lab 2 agent on groundedness, safety, and regulatory-neutrality (LLM-judge evaluators in the portal typically clear ≥ 0.95 on safety + neutrality).
+- Content Safety intercepted the direct injection probe at the prompt-shield layer — before the agent's own instructions even ran.
 
-- **Batch evaluation averages** for the guarded agent — `groundedness` ≥ 0.90, `safety` ≥ 0.95, `regulatory-neutrality` ≥ 0.95. If you ran the lightweight regex scorer from `lab3_eval.py` you'll see lower numbers — that's expected (the regex false-positives on historical words like "accepted"); the point is that the guarded agent scored *higher than the bare Lab-2 agent on every dimension*.
-- **Guarded agent's reply to Kai** refused the regulatory decision AND rebutted both biases with corpus-cited counter-evidence AND pointed to the Agency's reviewer process. Nothing that looks like an approval or rejection.
-- **A Trace exists for that reply** in the Traces tab, and it shows: the guardrails step (allowed / intercepted), the model call, evaluator scores per turn.
-- **Content Safety intercepted the direct injection probe.** In the batch eval, the `guardrail_prompt_injection_direct` row returned an HTTP 400 (Azure OpenAI content-policy filter) for both bare and guarded agents. That is the *Prompt Shield firing before the agent's own instructions even ran*.
+**What you learned.**
+- **Governance stacks.** Instructions (Lab 0) + Guardrails + Evaluators + Traces work together. Each layer catches what the others miss.
+- **Evaluators score meaning, not vocabulary.** Foundry's LLM-judge evaluators are what let you audit *why* a reply passed or failed.
+- **The audit trail is the workflow-safe part.** A perfectly-refusing agent still isn't enough without a trace.
+- **Refuse *and* rebut.** The guarded agent doesn't just say "I can't" — it cites the counter-evidence. That's the difference between a chatbot and a review co-pilot.
 
-**Learning points**
-
-- **Governance stacks.** Instructions (Lab 0) + portal Guardrails + Evaluators + Traces work together. Each layer catches things the others miss.
-- **Evaluators score meaning, not vocabulary.** The regex scorer's false FAILs are the pedagogical reason Foundry ships LLM-judge evaluators (`GroundednessEvaluator`, `ContentSafetyEvaluator`, and a custom `RegulatoryNeutralityEvaluator`). Attendees running the portal-based batch eval with Foundry-native evaluators typically clear ≥ 0.95 on safety and neutrality.
-- **The audit trail is the workflow-safe part.** Even a perfectly-refusing agent isn't enough without a trace. The trace is what you show your compliance office.
-- **Refuse *and* rebut.** The guarded agent doesn't just say "I can't" — it also cites the counter-evidence that undermines the biased framing. That's the difference between a chatbot and a review co-pilot.
-
-If any of these behaviours are missing, check that: your agent has the guardrail rules in Instructions (Lab-2 rules PLUS the Lab-3 additions), the workspace Guardrails page shows `Microsoft.DefaultV2` applied to your models, and App Insights is connected (facilitator-owned — ask if the Traces tab is empty).
+If any behaviour is missing, check the guardrail rules in Instructions, verify `Microsoft.DefaultV2` is applied at the workspace Guardrails page, and confirm App Insights is connected (facilitator-owned).
 
 ## 🧯 Troubleshooting
 

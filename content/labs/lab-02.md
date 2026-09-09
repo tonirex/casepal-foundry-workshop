@@ -116,7 +116,7 @@ Sample responses:
 
 ![SaMD classification reply explaining the two-axis SaMD framework with citations](screenshots/lab-02/04b-samd-classification-response.png)
 
-6. **Keep the four replies handy** (scroll back or copy to a scratchpad). You'll use them in the next section — the **✅ Checkpoint** — to self-check that CasePal is grounding its answers in the corpus rather than confabulating.
+That's the lab.
 
 ---
 
@@ -142,25 +142,23 @@ python lab2_rag.py
 
 ---
 
-## ✅ Checkpoint — reflect on what you observed
+## ✅ Checkpoint
 
-Nothing to paste. Scroll back through the four replies and confirm the behaviours below.
+**What you built.** A RAG agent that answers Wei Ling's clinical questions by citing SOPs, references, and prior cases — and refuses to invent when the corpus is silent.
 
-**What you should have observed**
+**What CasePal did.**
+- **Class C completeness** — cited `sop-01-completeness-check` §3.1–§3.3 and listed the Class C required documents.
+- **CardioFlow prior** — surfaced `case-A2024-042` (CardioFlow-P predecessor). Naturalised forms like "Case A2024-042" are fine — the model retrieved a real record.
+- **SkinLens prior** — said the signal is not in the corpus, invented no case ID. A related-but-distinct AI-MD reference (`case-A2024-312`, LungCheck-AI) may appear as context — that's a real record, not a confabulation.
+- **SaMD classification** — cited the SaMD reference and named the two axes: healthcare situation × significance of output.
 
-- **Class C completeness** — reply cites `sop-01-completeness-check` (usually §3.1–§3.3) and lists at least CER, risk-management file, software life-cycle (where applicable), biocompatibility.
-- **CardioFlow prior-similar** — reply surfaces `case-A2024-042` (CardioFlow-P predecessor). Naturalised citations like "Case A2024-042" or "A2024-042" are fine — what matters is that the model retrieved a real corpus record, not that it repeated the filename verbatim.
-- **SkinLens-AI prior-similar** — reply says the signal is **not in the corpus** ("No prior similar case in the current corpus" or equivalent). It contains **no invented case ID** for SkinLens-AI. The model may still mention `case-A2024-312 (LungCheck-AI)` as an AI-MD reference — that's a real record, not a confabulation.
-- **SaMD classification** — reply cites the SaMD reference (`references/samd-basics.md` or the workshop mapping) and correctly names the two axes: (1) healthcare situation/condition, (2) significance of the output.
-
-**Learning points**
-
+**What you learned.**
 - **Grounded answers cite their sources.** With Foundry IQ wired as file_search, every claim is anchored to a document ID. The Instructions block turns that into a rule: no citation, no answer.
-- **"No prior similar" is a first-class answer.** Refusing to invent a precedent is the exact opposite of what an ungrounded model does. The SkinLens case is the pedagogical anchor — memorise it.
-- **RAG doesn't guarantee formatting rigour.** Notice the model naturalised citation formats ("Case A2024-042" instead of "case-A2024-042"). If your downstream pipeline needs strict formatting, add an explicit example to the Instructions.
-- **Two dimensions matter for SaMD classification.** The 2×4 IMDRF matrix isn't magic — it's just healthcare situation × significance of information. Get comfortable with it now; Lab 3 evaluators reference it.
+- **"No prior similar" is a first-class answer.** Refusing to invent is the exact opposite of what an ungrounded model does. The SkinLens case is the pedagogical anchor.
+- **RAG doesn't guarantee formatting rigour.** The model naturalises citation formats. If your downstream pipeline needs strict formatting, add an explicit example to the Instructions.
+- **Two dimensions matter for SaMD classification.** Healthcare situation × significance of output. Lab 3 evaluators reference this framework.
 
-If any of the behaviours are missing, revisit the Instructions block ("Grounding rules") or check that the Foundry IQ index `casepal-knowledge` is attached under Tools & Knowledge.
+If any behaviour is missing, revisit the "Grounding rules" in Instructions or check that `casepal-knowledge` is attached under Tools & Knowledge.
 
 ## 🧯 Troubleshooting
 
