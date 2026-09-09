@@ -70,6 +70,8 @@ The workshop's grounding corpus (`content/knowledge/`) is **entirely synthetic**
 1. Reuse **`casepal-<initials>-intake`** from Lab 1. Duplicate it — call the copy **`casepal-<initials>-knowledge`**.
 2. Update the **Instructions** — replace the intake block with:
 
+   ![Knowledge instructions panel showing 'You are CasePal in KNOWLEDGE mode' block with grounding rules](screenshots/lab-02/nav-01-instructions.png)
+
 ```text
 You are CasePal in KNOWLEDGE mode. Given a free-text question about a dossier — SOP
 requirements, risk classification, clinical evaluation, or whether a similar prior case
@@ -91,6 +93,9 @@ Grounding rules:
 ```
 
 3. Under **Tools & Knowledge**, add the **Foundry IQ index** `casepal-knowledge` as a knowledge source.
+
+   ![Tools panel showing File search connected to casepal-knowledge with 68.07 KB size and vector store ID vs_ZNXvFryxG0pW7VHbuTqvnJ4F](screenshots/lab-02/nav-02-tools-knowledge.png)
+
 4. **Save**.
 5. Open the **Chat** tab. Test four prompts:
 
@@ -100,6 +105,16 @@ Grounding rules:
 | `Has any similar cardiac monitor been reviewed by the Agency before?` | Surfaces `case-A2024-042` (CardioFlow-P predecessor). |
 | `Has any similar skin-cancer screening AI been reviewed by the Agency before? (Context: MDR-2026-0121, SkinLens-AI)` | *"No prior similar case in the current corpus."* — no citation, no confabulation. |
 | `How is an AI-based diagnostic aid classified — as SaMD it uses a 2×4 matrix?` | Cites `references/samd-basics.md`. Correctly names the two axes. |
+
+Sample responses:
+
+![Class C completeness reply citing sop-01-completeness-check.md §3.1–§3.3 with the required-document list](screenshots/lab-02/01b-class-c-completeness-response.png)
+
+![CardioFlow prior-similar reply citing case-A2024-042 as the accepted predecessor](screenshots/lab-02/02b-cardioflow-prior-response.png)
+
+![SkinLens-AI reply: 'No prior similar case in the current corpus' — no invented case ID](screenshots/lab-02/03b-skinlens-no-prior-response.png)
+
+![SaMD classification reply explaining the two-axis SaMD framework with citations](screenshots/lab-02/04b-samd-classification-response.png)
 
 6. **Copy the four replies** — paste to validate.
 

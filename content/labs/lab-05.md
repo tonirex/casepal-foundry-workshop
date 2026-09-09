@@ -51,23 +51,50 @@ never for production.
 
 ### 🔵 Builder — connect the tool
 
-1. Reuse your **`casepal-<initials>-knowledge`** (or clone it as `casepal-<initials>-mcp`).
+1. Reuse your **`casepal-<initials>-knowledge`** (or clone it as `casepal-<initials>-mcp`). Update its Instructions to reference the MCP tool:
+
+   ![MCP-connected agent Instructions showing 'When the reviewer asks to lodge a case decision, use the casepal-case-management MCP tool. Confirm approval BEFORE any create_case or update_case_status call.'](screenshots/lab-05/nav-01-instructions.png)
+
 2. In the portal, open **Tools & Knowledge** → **+ Add MCP tool**.
 3. Enter:
    - **Server URL**: (facilitator provides — looks like `https://casepal-mcp-<hash>.azurecontainerapps.io`)
    - **Auth**: **None** for demo (real deployment would use Managed Identity).
    - **Approval mode**: **Required for writes** — this is the "always confirm before create/update" contract.
 4. Save. Refresh the tool list — you should see `create_case`, `get_case`, `update_case_status`, `list_open_cases`.
+
+   ![Tools panel showing BOTH File search connected to casepal-knowledge AND the MCP tool connected to casepal-case-management with the Azure Container Apps URL](screenshots/lab-05/nav-02-tools-knowledge.png)
+
 5. Open **Chat**. Send:
    ```
    Lodge MDR-2026-0135 to case management as 'accept with condition', priority medium, follow-up owner 'wl@agency-demo.test'. Condition text: MAH to submit annual clinical follow-up report on the spinal-fusion indication for three years post-registration.
    ```
+
+   CasePal proposes the tool call and asks for confirmation:
+
+   ![Wei Ling sends the lodgement request; agent proposes create_case invocation but asks for reviewer confirmation before writing](screenshots/lab-05/01b-lodge-case-response.png)
+
 6. CasePal should invoke `create_case`, pause for approval, and only proceed when you confirm. On confirm → returns a `case_id`.
+
+   The Foundry playground surfaces a native MCP approval card with a split-button (Approve / Deny):
+
+   ![Foundry MCP approval card showing the proposed create_case payload with Approve and Deny buttons](screenshots/lab-05/02c1-approval-card.png)
+
+   Clicking **Approve** offers *Approve once* / *Always approve this tool* / *Always approve all tools*. Select **Approve once**:
+
+   ![Approve split-button open with three approval options; Approve once selected](screenshots/lab-05/02c2-approval-card.png)
+
+   The tool call fires. CasePal chains a second approval for `update_case_status` — approve that too — and then surfaces the returned case_id:
+
+   ![Portal transcript: 'Request has been approved' for create_case then update_case_status, then 'Record created and opened successfully. Case ID: CMS-2026-1190' with priority medium, follow-up owner, decision note; AI Quality 100% Safety 100%](screenshots/lab-05/02d2-tool-result.png)
+
 7. Verify:
    ```
    Show me all my open cases.
    ```
    Should invoke `list_open_cases(owner="wl@agency-demo.test")` and echo the just-created case.
+
+   ![list_open_cases result showing all cases assigned to wl@agency-demo.test — CMS-2026-1188 (from the hosted-endpoint curl demo), CMS-2026-1189, and CMS-2026-1190 (from this portal session) — all pointing at MDR-2026-0135, all in the same MCP store](screenshots/lab-05/03d1-tool-result.png)
+
 8. **Copy the case_id from Test 5** — paste to validate.
 
 ### Behind the scenes (script rail)
@@ -100,8 +127,12 @@ The facilitator will:
    ```
 4. Show the returned case_id **matching** what you got in Part A — same agent, same MCP tool, same store.
 
+   ![Terminal-styled transcript: /healthz sanity check, then POST /chat with the lodgement JSON payload, response returned in 20.3s with case_id CMS-2026-1188; ends with 'Hosted endpoint returned CMS-2026-1188 — same behaviour, programmatic access'](screenshots/lab-05/99-curl-hosted-terminal.png)
+
 The point isn't *publishing* (which you'd wire into a real product yourselves); it's that **once your
-agent works in the portal, it's the same object accessible via API for downstream integration**.
+agent works in the portal, it's the same object accessible via API for downstream integration**. Notice
+that the Part A portal `list_open_cases` result above includes both this curl case (CMS-2026-1188)
+and the portal case (CMS-2026-1190) — visual proof that they hit the same MCP store.
 
 📚 **Docs:** [Hosted agents on Foundry](https://learn.microsoft.com/en-us/azure/ai-foundry/agents/how-to/deploy-hosted)
 

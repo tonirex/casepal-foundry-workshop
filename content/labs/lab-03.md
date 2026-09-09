@@ -49,23 +49,54 @@ The **Regulatory-Neutrality** evaluator is custom-built for CasePal. It flags an
 
 ## 🟢 Navigator — apply guardrails and review traces
 
-1. Reuse **`casepal-<initials>-knowledge`** from Lab 2. (No new agent needed — we're layering controls onto the same agent.)
+1. Reuse **`casepal-<initials>-knowledge`** from Lab 2. (No new agent needed — we're layering controls onto the same agent.) Extend the agent's Instructions block with the guardrail rules below:
+
+   ![Guarded agent Instructions with governance rules layered on top of the Lab 2 knowledge instructions](screenshots/lab-03/nav-01-instructions.png)
+
 2. Open the **Guardrails** tab of your agent. Enable:
    - **Prompt shield** (input filter for jailbreaks / prompt injection).
    - **Content safety** — set Toxicity / Sexual / Self-harm to *Medium* or stricter.
    - **Grounded facts** — enable (input + output).
+
+   The workspace-level Guardrails page shows the Microsoft.DefaultV2 guardrail already applied to the deployed models (`model-router`, `gpt-5`, `gpt-5-mini`, `text-embedding-3-small`):
+
+   ![Workspace Guardrails page showing Microsoft.DefaultV2 applied to model-router, gpt-5, gpt-5-mini, and text-embedding-3-small](screenshots/lab-03/08-guardrails-workspace.png)
+
 3. Open the **Evaluate** tab. Add the shared evaluator set the facilitator prepared:
    - `groundedness` (built-in)
    - `safety` (built-in)
    - `regulatory-neutrality` (custom — the facilitator has already published this to the project)
+
+   ![Foundry Evaluation tab with sub-tabs for Automatic Evaluation, Human Evaluation, and Red team](screenshots/lab-03/07-evaluation-tab.png)
+
 4. Run a batch evaluation using the **`casepal-eval-dataset`** (in `content/assets/`). You should see:
    - Baseline (Lab 2 agent, no guardrails): regulatory-neutrality score ~0.6–0.8 (some responses drift).
    - Guarded agent: regulatory-neutrality score ~0.95+.
+
+   Comparison from the Builder-rail script `content/assets/lab3_eval.py` running the 22-row dataset through both the bare and the guarded agents:
+
+   ![Terminal transcript of the batch evaluation: per-prompt scores for baseline and guarded agents, averages showing guarded > baseline on every dimension, Content Safety intercepting the direct prompt-injection at the prompt-shield level](screenshots/lab-03/eval-final-terminal.png)
+
 5. Open the **Traces** tab. Send Kai's question again from Chat. Find the resulting trace and inspect:
    - The **Guardrails** step — should show *intercepted / allowed* status.
    - The **Model call** — what the model actually returned.
    - The **Evaluators** — per-turn scores.
+
+   ![Foundry Traces tab with Trace / Conversation / Response view tabs and filter chips for Status, Duration, Tokens, Cost, Evaluators, and Annotation](screenshots/lab-03/05-traces-tab.png)
+
 6. **Copy the evaluation summary** (groundedness / safety / regulatory-neutrality averages) — paste to validate.
+
+### The bare vs. guarded contrast
+
+Send Kai's compound biased prompt to the **bare** `casepal-<initials>-knowledge` agent, then send the **same** prompt to the **guarded** agent. Both refuse the decision — but only the guarded agent explicitly rebuts each bias with corpus-cited counter-evidence and surfaces its evaluator scores.
+
+**Bare (Lab 2) — refuses, but no evaluator scores:**
+
+![Bare Lab 2 agent refuses both decisions and cites sop-01 and case-A2024-042, but shows no AI Quality or Safety scores because evaluators are not yet wired](screenshots/lab-03/02b-response.png)
+
+**Guarded (Lab 3) — refuses AND rebuts both biases, evaluators show 100%:**
+
+![Guarded Lab 3 agent refuses both decisions PLUS rebuts the 'novel AI-MDs always get approved' and 'CardioDeviceCo always incomplete' biases with cited counter-evidence; AI Quality and Safety both 100%](screenshots/lab-03/04b-response.png)
 
 ---
 

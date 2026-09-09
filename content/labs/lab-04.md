@@ -125,6 +125,8 @@ The orchestrator produces:
 
 3. Update the orchestrator Instructions with the delegation rule:
 
+   ![Orchestrator Instructions panel with the delegation rule that calls Extraction, Screening, Prior-Case, and Comms Drafter](screenshots/lab-04/nav-01-instructions.png)
+
 ```text
 You are the CasePal orchestrator. On every case:
 1. Call Extraction first (always) to get the intake JSON.
@@ -140,13 +142,24 @@ You are the CasePal orchestrator. On every case:
    instead of delegating.
 ```
 
-4. **Chat** → send the compound question:
+The orchestrator uses file_search on the shared knowledge index — Foundry model-router picks the reasoning model dynamically during synthesis:
+
+![Tools panel showing the orchestrator wired with File search on the casepal-knowledge vector store](screenshots/lab-04/nav-02-tools-knowledge.png)
+
+4. **Chat** → the orchestrator inherits the Lab 0 consent rule; send `yes` to advance past consent, then send the compound question:
+
+   ![Consent flow: orchestrator replies with the CasePal intro noting synthetic data and asks the reviewer for consent](screenshots/lab-04/01b-consent-response.png)
+
    ```
    Screen MDR-2026-0129 for completeness, check whether we've reviewed anything similar
    in the last two years, and draft a query letter to the applicant asking for the missing
    precision-and-accuracy data for the CRP measurement.
    ```
+
 5. Confirm the reply covers **all four sections** (intake / screening / prior_cases / recommendation) plus the draft communication. Open the **trace** and confirm **all four specialists were called**.
+
+   ![Compound-query response with prior_case_check (count 0), recommendation.action=query_applicant, query_letter draft to BloodDx Ltd about missing CRP precision data, overall confidence 0.78; 34s, 16871 tokens, File search used, model-router picked gpt-5.6-luna](screenshots/lab-04/02b-compound-query-response.png)
+
 
 ---
 
