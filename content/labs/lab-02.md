@@ -65,12 +65,13 @@ The workshop's grounding corpus (`content/knowledge/`) is **entirely synthetic**
 
 ## 🟢 Navigator — wire up a knowledge source
 
-**Prereq:** The facilitator has already uploaded `content/knowledge/**` into a Foundry IQ index named **`casepal-knowledge`** and shared it with the workshop project. If you don't see the index in the picker, ask.
+Keep working on the **same `casepal-<initials>` agent** you built in Labs 0 and 1.
 
-1. Reuse **`casepal-<initials>-intake`** from Lab 1. Duplicate it — call the copy **`casepal-<initials>-knowledge`**.
-2. Update the **Instructions** — replace the intake block with:
+1. Open your **`casepal-<initials>`** agent from Lab 1.
+2. Set **Response format** back to `text` (Lab 1 asked for JSON output; knowledge answers are prose with citations, not JSON).
+3. **Replace** the Instructions block with the knowledge block below — this switches the agent from *structured intake* mode to *grounded knowledge* mode:
 
-   ![Knowledge instructions panel showing 'You are CasePal in KNOWLEDGE mode' block with grounding rules](screenshots/lab-02/nav-01-instructions.png)
+   ![casepal-demo-knowledge Instructions panel: 'You are CasePal in KNOWLEDGE mode...'](screenshots/lab-02/nav-01-instructions.png)
 
 ```text
 You are CasePal in KNOWLEDGE mode. Given a free-text question about a dossier — SOP
@@ -92,9 +93,15 @@ Grounding rules:
 - Continue to refuse regulatory decisions (Lab 0 rules still apply).
 ```
 
-3. Under **Tools & Knowledge**, add the **Foundry IQ index** `casepal-knowledge` as a knowledge source.
+3. Attach the pre-built **Foundry IQ Knowledge Base** to your agent. The facilitator has already created **`casepal-knowledge`** at workspace level — 17 documents (5 SOPs, 5 prior cases, 5 references, plus README and fake-registry) uploaded directly, indexed by `text-embedding-3-small`, backed by an Azure AI Search resource. You can browse it at left-nav **Knowledge → Knowledge bases**:
 
-   ![Tools panel showing File search connected to casepal-knowledge with 68.07 KB size and vector store ID vs_ZNXvFryxG0pW7VHbuTqvnJ4F](screenshots/lab-02/nav-02-tools-knowledge.png)
+   ![Foundry IQ Knowledge Base detail page for casepal-knowledge showing gpt-5-mini as the chat completions model, Retrieval reasoning effort Minimal, Output mode Extractive data, and a knowledge source casepal-knowledge-src of type File with Status Active](screenshots/lab-02/nav-03-kb-detail.png)
+
+   On your `casepal-<initials>` agent's Playground page, scroll to the **Knowledge** section (below Tools). Click **Add → Connect to Foundry IQ**:
+
+   ![Agent build page Knowledge section with Add dropdown open showing 'Connect to Foundry IQ' as the option](screenshots/lab-02/nav-05-agent-connect-foundry-iq.png)
+
+   Pick **`casepal-knowledge`** from the list. Save your agent.
 
 4. **Save**.
 5. Open the **Chat** tab. Test four prompts:
@@ -162,9 +169,13 @@ If any behaviour is missing, revisit the "Grounding rules" in Instructions or ch
 
 ## 🧯 Troubleshooting
 
+- **Agent says "No supporting SOP or reference is available in the current corpus" even for basic prompts like Class C completeness?** This is Foundry IQ's Extractive-data output mode being conservative under the default *Minimal* Retrieval reasoning effort. Two knobs to try on the Knowledge Base page:
+  1. Bump **Retrieval reasoning effort** from *Minimal* → *Low* → *Medium* (Medium is more aggressive at surfacing chunks the raw index has).
+  2. Add explicit **Retrieval instructions** describing the corpus, e.g. *"When the question is about SOP-01, SOP-02, or a case-A2024-xxx prior case, retrieve from casepal-knowledge-src."*
+  The raw AI Search underneath (`casepal-workshop-srch`) has the content; the retrieval reasoner just needs to trust it.
 - **Agent invents a case ID for SkinLens-AI?** Your Instructions aren't strict enough on the "no confabulation" rule. Re-paste block, emphasise the "No prior similar…" template.
-- **Agent uses web search instead of the index?** Detach the web-search tool. Only the Foundry IQ index should be enabled.
-- **No results returned even for the SOP prompts?** Index not shared with your project, or embedding model not deployed. Ask the facilitator.
+- **Agent uses web search instead of the knowledge base?** Detach the web-search tool. Only the Foundry IQ knowledge base should be enabled.
+- **Fewer files than expected in the KB source?** The Foundry IQ file uploader occasionally drops files silently under load. Open the source and add the missing files via the drop area, then Save.
 - **Agent cites the correct SOP but paraphrases without quoting?** Add: *"Quote the exact SOP section number in every citation (e.g. sop-01 §3.3), not just the file name."*
 
 ---

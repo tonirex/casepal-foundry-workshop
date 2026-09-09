@@ -58,14 +58,16 @@ Every intake response returns **exactly** these fields:
 
 ## 🟢 Navigator — build it in the portal
 
-1. Reuse **`casepal-<yourinitials>`** from Lab 0. Duplicate it — call the copy **`casepal-<initials>-intake`**.
+You'll work on the **same agent you created in Lab 0** all the way through Lab 3 — Foundry doesn't have a "clone agent" concept, and you don't need one. Each lab updates the same agent's Instructions, Model, Response format, or Tools.
+
+1. Open your **`casepal-<initials>`** agent from Lab 0.
 2. Set the **Model** dropdown to **`model-router`** and **Response format** to `JSON object`.
 
    ![Model dropdown showing model-router selected on casepal-demo-intake](screenshots/lab-01/nav-02-model.png)
 
    ![Response format setting showing JSON object selected](screenshots/lab-01/nav-03-response-format.png)
 
-3. In **Instructions**, replace the Lab 0 block with:
+3. In **Instructions**, **replace** the Lab 0 block with the intake block below. This turns your Hello-CasePal agent into a structured-intake agent:
 
    ![Intake instructions panel with the JSON-contract instructions pasted in](screenshots/lab-01/nav-01-instructions.png)
 
