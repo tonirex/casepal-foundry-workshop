@@ -88,18 +88,22 @@ A **Regulatory-Neutrality** evaluator for CasePal — one that flags any reply m
 
    > 💡 You don't need to build one yourself for this lab — the facilitator has already done it. If you want to see the flow, click **Create evaluator** at the top-right and browse the form (then Cancel).
 
-5. **View a completed batch evaluation run.** The facilitator has already kicked off a run of the guarded agent against a synthetic 20-row dataset using Regulatory Neutrality + Groundedness + Relevance + IndirectAttack + the safety categories. Navigate to **Evaluations → Runs** and open **`eval-dnxagmso`** (or whatever the facilitator names the current run).
+5. **View a completed batch evaluation run.** The facilitator has already kicked off a run of the guarded agent against a 20-row synthetic dataset with Regulatory Neutrality + 20 auto-suggested built-in evaluators (Groundedness, Relevance, IndirectAttack, TaskAdherence, ToolSelection, safety categories, etc.). Navigate to **Evaluations → Runs** and open **`eval-dnxagmso`** (or whatever the facilitator names the current run).
 
-   ![Completed evaluation run detail page for eval-dnxagmso showing overall scores across the built-in evaluators and the custom regulatory-neutrality evaluator for target casepal-demo-guarded.](screenshots/lab-03/nav-06-eval-run-completed.png)
+   ![Completed evaluation run detail page for eval-dnxagmso showing target casepal-demo-guarded, status Completed, duration 58m 26s, overall score 88% (351/397). Overall metric results table with ToolSelection 95%, ToolOutputUtilization 89%, ToolCallSuccessEvaluator 100%, ToolCallAccuracy 100%, TaskCompletion 28%, TaskAdherence 82%. Detailed metrics result table below with per-row Regulatory Neutrality Rubric scores.](screenshots/lab-03/nav-06-eval-run-completed.png)
 
-   _Completed `eval-dnxagmso` run with overall evaluator scores visible, including the custom `regulatory-neutrality` aggregate._
+   Then click **Analyze Results** at the top-right for Foundry's built-in AI cluster analysis. It groups the 39 failed test cases (out of 420 sample × evaluator combinations, ~9%) into three human-readable buckets and suggests fixes:
 
-   Click the run to open the results panel. Look at:
-   - **Overall score** — one number per row for each evaluator.
-   - **Per-dimension scores** for Regulatory Neutrality — see which dimensions the guarded agent scored highest on (usually `explicit_deferral_of_authority` and `avoid_binding_directives`).
-   - **Analyze Results** — Foundry's built-in AI analysis of failed rows.
+   ![Cluster analysis page: Total Samples 39, Clusters 3, Passed 0, Failed 39. Top 5 suggestions by AI: Enforce SOP Citations, Draft Reviewer-Ready Notices, Provide Best-Effort Template, Use Appropriate Tool, Adjust Guardrail Detection. A scatter plot of clusters — 'inadequate final answer' (27 samples), 'incorrect tool call' (6), 'content filtering misfire' (6).](screenshots/lab-03/nav-07-eval-cluster-analysis.png)
 
-   > 💡 **Full evaluations take 15–45 minutes** to complete because every row goes through several LLM-judge calls. This lab is a walkthrough — you're looking at the finished output, not waiting for a fresh run.
+   **Highlights of what to point at:**
+
+   - **Safety is airtight** — 100% pass on Hate/Unfairness, Self-harm, Sexual, Violence, IndirectAttack, Code Vulnerability, Protected Material. (Prompt Shield + Content Safety working end-to-end.)
+   - **Quality is strong** — Coherence 95%, Fluency 95%, Groundedness 85%, Relevance 75%.
+   - **Regulatory Neutrality (the custom rubric)** — 11/20 pass, avg score 0.594 (threshold 0.5). Six rows errored because the judge model couldn't score them; two scored below threshold. The clean regulatory-refusal probe (*"Just reject MDR-2026-0117 by Friday..."*) scored 0.905.
+   - **TaskCompletion at 25% looks alarming but is by design.** The guarded agent *refuses* many synthetic tasks — regulatory decisions, unevidenced biases, fake citations like `sop-99-penalties §2` (the dataset generator sprinkled these in as temptations). Standard TaskCompletion evaluators don't know the agent is *supposed* to refuse, so they mark refusals as "task not completed". Always cross-reference with Regulatory Neutrality to disambiguate: **low task completion + high regulatory neutrality = the agent is refusing correctly.**
+
+   > 💡 **Full evaluations take 15–60 minutes** to complete because every row goes through many LLM-judge calls. This lab is a walkthrough — you're looking at the finished output, not waiting for a fresh run.
 
    For a fast Python comparison against 22 canned prompts, the Builder rail (`content/assets/lab3_eval.py`) shows guarded > baseline on every dimension in under 5 minutes:
 
