@@ -34,14 +34,14 @@ from common.casepal_common import (
 from lab4_multiagent import extract_case, find_prior_cases
 
 
-def _texts(result) -> list[str]:
-    collected: list[str] = []
-    for output in result.get_outputs():
-        for message in output if isinstance(output, list) else [output]:
-            text = getattr(message, "text", None)
-            if text and text not in collected:
-                collected.append(text)
-    return collected
+def _participant_texts(result) -> list[str]:
+    # Outputs without a response_id are the aggregated conversation the workflow
+    # emits alongside the participants, not a specialist reply.
+    return [
+        response.text
+        for response in result.get_outputs()
+        if getattr(response, "response_id", None) and (response.text or "").strip()
+    ]
 
 
 async def main():
@@ -69,7 +69,8 @@ async def main():
         # result, so the other specialist's findings would be silently dropped.
         fan_out = ConcurrentBuilder(participants=[screening, prior_case], output_from="all").build()
         specialist_result = await fan_out.run(json.dumps(intake, ensure_ascii=False))
-        findings = _texts(specialist_result)
+        findings = _participant_texts(specialist_result)
+        assert len(findings) == 2, f"expected both specialists to reply, got {len(findings)}"
         for text in findings:
             print(f"--- specialist ---\n{text[:400]}\n")
 
