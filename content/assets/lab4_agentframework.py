@@ -35,11 +35,11 @@ from lab4_multiagent import extract_case, find_prior_cases
 
 
 def _texts(result) -> list[str]:
-    collected = []
+    collected: list[str] = []
     for output in result.get_outputs():
         for message in output if isinstance(output, list) else [output]:
             text = getattr(message, "text", None)
-            if text:
+            if text and text not in collected:
                 collected.append(text)
     return collected
 
@@ -65,7 +65,9 @@ async def main():
         )
         comms = client.as_agent(name="comms", instructions=COMMS_INSTRUCTIONS)
 
-        fan_out = ConcurrentBuilder(participants=[screening, prior_case]).build()
+        # output_from="all": without it the workflow yields only one participant's
+        # result, so the other specialist's findings would be silently dropped.
+        fan_out = ConcurrentBuilder(participants=[screening, prior_case], output_from="all").build()
         specialist_result = await fan_out.run(json.dumps(intake, ensure_ascii=False))
         findings = _texts(specialist_result)
         for text in findings:
