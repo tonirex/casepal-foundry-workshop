@@ -14,61 +14,76 @@ if str(_here) not in sys.path:
 
 # %%
 from common.casepal_common import (
+    COMMS_INSTRUCTIONS,
     ORCHESTRATOR_INSTRUCTIONS,
+    SCREENING_INSTRUCTIONS,
+    build_vector_store,
     cleanup,
     create_agent,
+    file_search_tool,
     function_tool,
     load_case,
+    load_case_packages,
+    run_and_parse,
+    run_text,
     run_with_trace,
     text_of,
 )
 
+# Populated in main() so the specialist tools can reach their agents.
+SPECIALISTS: dict = {}
+
 
 def extract_case(case_id: str) -> dict:
+    # Read the dossier's own fields only — never answer_key, or the lab would
+    # be grading the model against values it was handed.
     case = load_case(case_id)
-    key = case["answer_key"]
-    declared = key.get("expected_class_confirmed")
-    if declared == "B_or_C":
-        declared = "needs_reviewer_determination"
     return {
         "case_id": case["case_id"],
         "applicant": case["applicant"],
-        "device": case["device"] | {"declared_class": declared or case["device"]["declared_class"]},
+        "device": case["device"],
         "submission_type": case["submission_type"],
         "documents_present": case["documents_present"],
-        "documents_missing_for_class": key.get("expected_documents_missing_for_class") or [],
-        "priority_flags": key.get("expected_priority_flags") or [],
-        "router_choice": key.get("expected_router_choice", "model-router"),
     }
 
 
 def screen_case(intake: dict) -> dict:
-    gaps = []
-    citations = []
-    if "09-precision" in intake.get("documents_missing_for_class", []):
-        gaps.append("CRP precision-and-accuracy data is missing for the Class B measurement claim.")
-        citations.extend(["sop-01 §3.2", "sop-03 §4"])
-    severity = "medium" if gaps else "low"
-    return {"gaps": gaps, "sop_citations": citations, "severity": severity}
+    return run_and_parse(SPECIALISTS["screening"], json.dumps(intake, ensure_ascii=False))
 
 
-def find_prior_cases(applicant: str, device_category: str = "", declared_class: str = "") -> dict:
-    if applicant == "BloodDx Ltd":
-        return {"count": 1, "sample_case_ids": ["MDR-2026-0122"], "similarity_note": "Same applicant and BloodScan-X platform; earlier variant included precision data."}
-    return {"count": 0, "sample_case_ids": [], "similarity_note": "No prior similar case in the current corpus."}
+def find_prior_cases(applicant: str, device_category: str = "", declared_class: str = "", case_id: str = "") -> dict:
+    # SOP-04 §3 ranks similarity by level and treats a hit at any level as
+    # worth surfacing, so these are OR-ed rather than AND-ed.
+    levels = {0: "same product family", 1: "same applicant", 2: "similar category, different applicant"}
+    wanted_applicant = applicant.strip().lower()
+    wanted_device = device_category.strip().lower()
+    ranked = []
+    for cid, case in load_case_packages().items():
+        if cid == case_id:
+            continue
+        name = case["device"]["name"].strip().lower()
+        same_applicant = case["applicant"].strip().lower() == wanted_applicant
+        same_family = bool(wanted_device) and (wanted_device in name or name in wanted_device)
+        if same_applicant and same_family:
+            ranked.append((0, cid))
+        elif same_applicant:
+            ranked.append((1, cid))
+        elif same_family:
+            ranked.append((2, cid))
+    ranked.sort()
+    if not ranked:
+        return {"count": 0, "sample_case_ids": [], "similarity_note": "No prior similar case in the current corpus."}
+    best = levels[ranked[0][0]]
+    return {
+        "count": len(ranked),
+        "sample_case_ids": [cid for _, cid in ranked[:5]],
+        "similarity_note": f"Closest match by SOP-04 §3: {best}.",
+    }
 
 
 def draft_rfi(intake: dict, gaps: list[str]) -> str:
-    return (
-        f"Subject: [{intake['case_id']}] Request for information\n\n"
-        f"Dear {intake['applicant']},\n\n"
-        f"We are reviewing {intake['device']['name']} {intake['device'].get('model', '')}. "
-        "Please provide the following information:\n"
-        "1. Precision-and-accuracy data for the CRP measurement claim, citing SOP-01 §3.2 and SOP-03 §4.\n\n"
-        "Please respond within 30 calendar days.\n\n"
-        "Regards,\n[Reviewer name]\n\n"
-        "This is a draft for reviewer review before sending."
-    )
+    payload = {"intake": intake, "gaps": gaps}
+    return run_text(SPECIALISTS["comms"], json.dumps(payload, ensure_ascii=False))
 
 TOOLS = [
     # extract_case has a fully-defined string parameter — safe for strict mode.
@@ -90,13 +105,14 @@ TOOLS = [
     ),
     function_tool(
         "find_prior_cases",
-        "Search institutional memory for similar cases.",
+        "Search institutional memory for similar prior submissions.",
         {
             "type": "object",
             "properties": {
                 "applicant": {"type": "string"},
                 "device_category": {"type": "string"},
                 "declared_class": {"type": "string"},
+                "case_id": {"type": "string", "description": "Case under review, excluded from results."},
             },
             "required": ["applicant"],
         },
@@ -116,6 +132,10 @@ TOOLS = [
 
 
 def main():
+    vs_id = build_vector_store(".", name="casepal-knowledge")
+    screening = create_agent("casepal-screening", SCREENING_INSTRUCTIONS, tools=[file_search_tool(vs_id)])
+    comms = create_agent("casepal-comms", COMMS_INSTRUCTIONS)
+    SPECIALISTS.update(screening=screening, comms=comms)
     agent = create_agent("casepal-orchestrator", ORCHESTRATOR_INSTRUCTIONS, tools=TOOLS)
     try:
         # The orchestrator inherits Lab 0's consent rule ("greet + ask consent on
@@ -141,17 +161,22 @@ def main():
         # draft_communication vs. draft_query_letter). Assert on the SEMANTIC
         # signal rather than a specific structural path.
         result_text = json.dumps(result, ensure_ascii=False)
+        lowered = result_text.lower()
         assert "MDR-2026-0129" in result_text, "case_id missing from synthesised output"
-        assert "09-precision" in result_text, "documents_missing_for_class did not surface 09-precision"
+        # The gap is derived by the screening agent from SOP-01 §3.2, not handed
+        # to it: MDR-2026-0129 simply has no 09-precision document.
+        assert "precision" in lowered, "screening did not surface the missing precision evidence"
+        assert "sop-01" in lowered, "screening did not cite SOP-01 for the completeness gap"
+        # Found by searching the case corpus for the same applicant/device family.
         assert "MDR-2026-0122" in result_text, "prior case MDR-2026-0122 not surfaced"
         # Recommendation should be a query action (accept variants: "query",
         # "query_applicant", "request", "info-request")
         recommendation_signals = ["query", "request", "rfi"]
-        assert any(sig in result_text.lower() for sig in recommendation_signals), \
+        assert any(sig in lowered for sig in recommendation_signals), \
             "orchestrator did not recommend a query/RFI action"
         print("Lab 4 passed ✅")
     finally:
-        cleanup(agent)
+        cleanup(agent, screening, comms)
 
 
 if __name__ == "__main__":

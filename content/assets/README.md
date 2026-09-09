@@ -12,6 +12,7 @@ assets/
   lab3_eval.py/.ipynb             # guardrails, evaluators, trace-ready dataset
   lab4_multiagent.py/.ipynb       # orchestrator + four specialists
   lab4_multiagent_concurrent.py   # concurrent specialist variant
+  lab4_agentframework.py          # same fan-out via Microsoft Agent Framework workflows
   mcp-case-management/            # Lab 5 mock Case Management System MCP server
   hosted-deploy/                  # Lab 5 hosted-agent facilitator demo
   case-packages.jsonl             # 15 synthetic dossiers

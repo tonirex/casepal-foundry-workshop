@@ -173,15 +173,23 @@ python lab4_multiagent.py
 ```
 
 **Under the hood** — the notebook / script:
-1. Defines the five agents (orchestrator + 4 specialists) via `PromptAgentDefinition`.
+1. Defines the orchestrator plus the Screening and Comms specialists via `PromptAgentDefinition`.
 2. Exposes each specialist as a `function_tool(...)` on the orchestrator's definition.
 3. Runs the compound query with `run_with_trace(...)`.
 4. Catches each `function_call` Foundry emits, invokes the matching specialist, feeds the result back with `previous_response_id` until the orchestrator returns one merged JSON.
 5. Prints the tool-call chain and the synthesised reply.
 
-A concurrent variant (`lab4_multiagent_concurrent.py`) shows how to run Screening + Prior-Case + Comms Drafter in parallel via `asyncio.gather(...)` once Extraction returns — the three downstream specialists are independent.
+The specialists do real work, which is what makes the assertions meaningful:
+- **Extraction** reads only the dossier's own fields (`documents_present`, device, submission type) — never `answer_key`.
+- **Screening** is a `file_search`-grounded agent that *derives* the missing precision evidence from SOP-01 §3.2; it is never told which document is absent.
+- **Prior-Case** searches the case corpus using the SOP-04 §3 similarity levels, so `MDR-2026-0122` is found rather than hardcoded.
+- **Comms Drafter** writes the RFI from the gaps Screening actually returned.
 
-📚 **Docs:** [Function calling / tools](https://learn.microsoft.com/en-us/azure/ai-foundry/agents/how-to/tools/function-calling) · [Connected / multi-agent workflows](https://learn.microsoft.com/en-us/azure/ai-foundry/agents/concepts/workflows)
+Two variants ship alongside it:
+- `lab4_multiagent_concurrent.py` — runs Screening ∥ Prior-Case with `asyncio.gather(...)` once Extraction returns, then drafts the RFI.
+- `lab4_agentframework.py` — the same fan-out expressed with the **Microsoft Agent Framework**: `ConcurrentBuilder(participants=[screening, prior_case])`, agents created with `FoundryChatClient.as_agent(...)`. No agent version lifecycle to clean up, and a plain Python function can be passed straight in as a tool.
+
+📚 **Docs:** [Function calling / tools](https://learn.microsoft.com/en-us/azure/ai-foundry/agents/how-to/tools/function-calling) · [Connected / multi-agent workflows](https://learn.microsoft.com/en-us/azure/ai-foundry/agents/concepts/workflows) · [Agent Framework orchestrations](https://learn.microsoft.com/en-us/agent-framework/workflows/orchestrations/)
 
 ---
 
@@ -192,13 +200,13 @@ A concurrent variant (`lab4_multiagent_concurrent.py`) shows how to run Screenin
 **What CasePal did.**
 - Called all four specialists in the trace: Extraction → Screening → Prior-Case → Comms Drafter.
 - Assembled a merged JSON reply with the intake, screening findings, prior-case hit, recommendation, and a draft RFI.
-- Case ID surfaced as `MDR-2026-0129`; missing document `09-precision` flagged; prior case `MDR-2026-0122` cited; recommendation was `query` (or a synonym); the draft RFI cited SOP-01 §3.2 and asked for CRP precision-and-accuracy data.
+- Case ID surfaced as `MDR-2026-0129`; the missing precision-and-accuracy evidence was flagged against SOP-01 §3.2; prior case `MDR-2026-0122` cited; recommendation was `query` (or a synonym); the draft RFI asked for the CRP precision-and-accuracy data.
 
 **What you learned.**
 - **Orchestration is a control pattern, not a model feature.** Four narrow specialists with tight prompts beat one over-instructed agent for complex tasks.
 - **Evidence-based decision support ≠ opinion.** The recommendation carries `supporting_evidence` and `rationale`. Without them, it's just a chatbot verdict.
-- **Confidence should reflect completeness.** Missing evidence knocks confidence down. If your orchestrator claims 1.0 with `09-precision` missing, tighten the delegation rule.
-- **Parallelism is available.** Screening + Prior-Case + Comms Drafter are independent — `lab4_multiagent_concurrent.py` fires them concurrently.
+- **Confidence should reflect completeness.** Missing evidence knocks confidence down. If your orchestrator claims 1.0 while required evidence is absent, tighten the delegation rule.
+- **Parallelism is available.** Screening and Prior-Case are independent — `lab4_multiagent_concurrent.py` fires them concurrently by hand, and `lab4_agentframework.py` does the same with the Agent Framework's `ConcurrentBuilder`.
 
 If fewer than four tool calls fire in the trace, the orchestrator picked a shortcut — tighten the delegation rule. If a section is missing from the reply, enumerate the JSON shape more explicitly in Instructions.
 
