@@ -109,10 +109,10 @@ python lab3_eval.py
 
 **Under the hood** — the notebook / script:
 1. Loads `casepal-eval-dataset.jsonl` (20+ rows: intake checks, SOP citation checks, recommendation quality, refusal-on-uncertainty, and guardrail probes).
-2. Runs both the Lab 2 agent AND the guarded Lab 3 agent through the dataset.
-3. Scores each output against three evaluators: `GroundednessEvaluator`, `ContentSafetyEvaluator`, and the custom `RegulatoryNeutralityEvaluator`.
-4. Prints a side-by-side comparison table showing where guardrails changed the outcome.
-5. Emits App Insights traces so the results also appear in the portal Traces tab.
+2. Runs a guarded, retrieval-enabled Lab 3 agent through the dataset.
+3. Applies lightweight local checks for groundedness, safety, and regulatory neutrality only where each row declares that evaluator.
+4. Records Prompt Shield interception of guardrail probes as a successful safety outcome and continues the batch.
+5. Prints per-row results and aggregate scores. Use Foundry Evaluate and Application Insights in the Navigator steps for model-based evaluators and traces.
 
 📚 **Docs:** [Foundry evaluators](https://learn.microsoft.com/en-us/azure/ai-foundry/agents/how-to/evaluate) · [Content safety guardrails](https://learn.microsoft.com/en-us/azure/ai-foundry/agents/how-to/guardrails) · [Tracing to App Insights](https://learn.microsoft.com/en-us/azure/ai-foundry/agents/how-to/tracing)
 

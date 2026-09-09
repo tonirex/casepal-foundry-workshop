@@ -47,3 +47,11 @@ python lab4_multiagent.py
 ```
 
 All scripts use `FOUNDRY_PROJECT_ENDPOINT`, `FOUNDRY_MODEL_NAME` (default `model-router`), and `INITIALS`. The notebooks are the canonical Builder artefacts; scripts mirror the same source for facilitators who prefer terminals.
+
+## Troubleshooting
+
+- `Set FOUNDRY_PROJECT_ENDPOINT`: copy `.env.example` to `.env`, set the Foundry project endpoint from the project Overview page, and run `az login --use-device-code`.
+- Script not found: run from `content/assets`, or use the repository-root path such as `python content/assets/lab1_intake.py`.
+- Prompt Shield returns HTTP 400 `content_filter`: this is an expected successful interception for the Lab 3 guardrail probes. The Lab 3 runner records it and continues.
+- A Foundry request stalls: requests time out after 60 seconds and retry up to three times. Set `FOUNDRY_RESPONSE_TIMEOUT` to override the per-request timeout.
+- Notebook and script behave differently: use the version from the same commit. The matching `.ipynb` and `.py` files are kept synchronized.

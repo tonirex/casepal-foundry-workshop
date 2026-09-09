@@ -41,6 +41,7 @@ EVAL_DATASET = ASSETS / "casepal-eval-dataset.jsonl"
 
 MODEL = os.environ.get("FOUNDRY_MODEL_NAME") or os.environ.get("MODEL_DEPLOYMENT", "model-router")
 INITIALS = os.environ.get("INITIALS", "xx")
+RESPONSE_TIMEOUT_SECONDS = float(os.environ.get("FOUNDRY_RESPONSE_TIMEOUT", "60"))
 
 
 def _endpoint() -> str:
@@ -324,11 +325,12 @@ def run_text(agent, text: str) -> str:
     # mid-turn; the correct behaviour is to back off and retry, not fail the run.
     import time as _time
     last_err = None
-    for attempt in range(5):
+    for attempt in range(3):
         try:
             resp = get_openai().responses.create(
                 input=text,
                 extra_body={"agent_reference": agent_reference(agent)},
+                timeout=RESPONSE_TIMEOUT_SECONDS,
             )
             return resp.output_text
         except Exception as e:
@@ -339,9 +341,11 @@ def run_text(agent, text: str) -> str:
                 or "503" in msg
                 or "504" in msg
                 or "server had an error" in msg.lower()
+                or "timed out" in msg.lower()
                 or "InternalServer" in type(e).__name__
                 or "ServiceUnavailable" in type(e).__name__
                 or "GatewayTimeout" in type(e).__name__
+                or "Timeout" in type(e).__name__
             )
             if transient:
                 last_err = e
