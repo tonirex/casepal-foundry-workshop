@@ -35,7 +35,7 @@ One agent doing everything gets brittle. Foundry's **Workflows** feature makes m
 - 🟢 **Navigator** (portal, no-code) — follow the [🟢 Navigator section](#-navigator--build-the-workflow) below.
 - 🔵 **Builder** (notebook or script) — [`lab4_multiagent.ipynb`](../assets/lab4_multiagent.ipynb) (canonical) or `python content/assets/lab4_multiagent.py`. Two further variants show the same case with hand-rolled concurrency and with the Microsoft Agent Framework.
 
-> Required today: **all four specialists** + the orchestrator (reusing your Lab 3 agent).
+> Required today: **all four specialists** + the orchestrator (all pre-deployed by the facilitator as `casepal-demo-{extraction,screening,prior-case,comms,orchestrator}`).
 
 ## Demo (facilitator, 5 min)
 
@@ -49,7 +49,7 @@ Point out **four specialist calls in one turn**, all fed back into the orchestra
 
 | Specialist | Job | Key rules |
 |---|---|---|
-| **Orchestrator** (reuses your Lab 3 agent) | Decide which specialists to call; synthesise their outputs into one recommendation | Adds an orchestration block on top of Lab 3 rules |
+| **Orchestrator** (`casepal-demo-orchestrator`) | Decide which specialists to call; synthesise their outputs into one recommendation | Delegation rule enumerates the five-step fan-out; confidence capped at 0.75 while any gap remains open |
 | **Extraction** | Given a raw dossier, return the Lab 1 intake JSON | Same schema as Lab 1 |
 | **Screening** | Given an intake JSON, check against SOP-01 (completeness) and SOP-03 (clinical evaluation adequacy for the declared class); return `{gaps[], sop_citations[], severity}` | Read-only over the SOP index; never issues a rejection recommendation |
 | **Prior-Case** | Given `(applicant, device_category, declared_class)`, search the prior-case store; return `{count, sample_case_ids[], similarity_note}` | Never invents case IDs; if count is 0, says so |
@@ -101,11 +101,15 @@ Under a normal agent's **Tools & Knowledge**, if you click **Add → Add tools �
 
 This is where you'd wire an orchestrator to specialists in the portal — one A2A entry per specialist. Because A2A needs an HTTP endpoint (Foundry agents don't auto-publish one), we use the equivalent function-tool pattern in code — see the Builder rail below.
 
-### Walk 3 — the orchestrator's delegation instructions
+### Walk 3 — meet the orchestrator
 
-The orchestration behaviour lives in a **prompt** on the orchestrator, not in a wiring diagram. Here's the delegation rule the Builder-rail script uses:
+Back in the **Agents** list, click **`casepal-demo-orchestrator`** — the coordinator that fans out to the four specialists you just met. Open its **Instructions** panel and read the delegation rule; open its **Tools & Knowledge** panel and note it has:
+- The **Foundry IQ knowledge base** (`casepal-knowledge`) attached as an MCP tool — for grounding synthesised replies in the SOP corpus.
+- **Four function-tool declarations** — `extract_case`, `screen_case`, `find_prior_cases`, `draft_rfi` — one per specialist. These make the delegation shape visible in the portal.
 
 ![Orchestrator Instructions panel with the delegation rule that calls Extraction, Screening, Prior-Case, and Comms Drafter](screenshots/lab-04/nav-01-instructions.png)
+
+Here is the exact delegation rule (already applied to `casepal-demo-orchestrator`) that Foundry follows when you chat with it:
 
 ```text
 You are the CasePal orchestrator. On every case:
@@ -120,7 +124,24 @@ You are the CasePal orchestrator. On every case:
 6. For HIGH-risk or regulatory-decision requests, apply Lab 3 guardrails.
 ```
 
-**Walk over to the Builder rail below** to see this actually run against the four deployed specialists.
+The orchestrator has **two modes**:
+- **Portal walkthrough mode** (what you get when you open it in the Playground) — it prefixes replies with a `[Walkthrough reply — …]` banner and produces the target JSON shape *directly*, reasoning over the Foundry IQ corpus rather than emitting unresolved function calls. Confidence is capped at 0.75 whenever a screening gap remains open, per the delegation rule.
+- **Production mode** (what happens when the Builder rail script is the client) — it actually fans out to the four specialists via the function tools; the runner catches each `function_call` event and forwards it to the deployed specialist. Confidence still capped at 0.75 while gaps are open.
+
+### Walk 4 — send Wei Ling's compound question
+
+Open **`casepal-demo-orchestrator`** in the Playground and paste this prompt into the Chat panel:
+
+```text
+Screen MDR-2026-0129 for completeness, check whether we've reviewed anything similar in the last two years, and draft a query letter to the applicant asking for the missing precision-and-accuracy data for the CRP measurement.
+```
+
+You should get back a walkthrough reply with:
+- The banner line `[Walkthrough reply — in production this fans out to four specialists. See Lab 4 Builder rail for the real trace.]`
+- The full synthesised JSON: `intake`, `screening` (with `gaps`, `sop_citations`, `severity`), `prior_cases`, `recommendation` (with `confidence: 0.75` because of the open gap), and `draft_communication` (an RFI email ending with a reviewer-review disclaimer).
+- SOP citations grounded via Foundry IQ.
+
+**Walk over to the Builder rail below** to see the same question actually fan out to the four deployed specialists in a real trace.
 
 ---
 
