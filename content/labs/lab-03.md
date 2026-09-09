@@ -37,13 +37,10 @@ Three overlapping controls:
 | Control | What it catches | Where it lives |
 |---|---|---|
 | **Content Safety guardrails** | Prompt-injection, hate, self-harm, sexual, violence, protected materials | Foundry portal → **Guardrails** (workspace-level, applied per model) |
-| **Evaluators** (batch + inline) | Groundedness (does the reply match retrieved sources?), Safety score, and a custom **Regulatory-Neutrality** check | Foundry portal → **Evaluation** tab on the agent |
+| **Evaluators** (inline + batch) | Groundedness, Relevance, Retrieval, Coherence, safety categories, tool-call correctness, and any custom rubric you define | Foundry portal → Agent Playground **Quick evaluations** panel (inline) or workspace **Evaluations** page (batch) |
 | **Tracing** (Application Insights) | Model calls, tool calls, guardrail intercepts, evaluator scores per turn | Foundry portal → **Traces** tab (needs App Insights connection, facilitator sets this up) |
 
-The **Regulatory-Neutrality** evaluator is custom-built for CasePal. It flags any reply that:
-- Makes a binding statement on behalf of the Agency ("the Agency should issue…", "we are recalling…").
-- Recommends a specific regulatory action ("you should ban", "you should update the label").
-- Assesses whether a real-world event warrants regulatory action.
+A **Regulatory-Neutrality** evaluator for CasePal — one that flags any reply making a binding statement on behalf of the Agency ("the Agency should issue…", "we are recalling…") or recommending a specific regulatory action — isn't a built-in. Foundry's **Custom rubric evaluator** feature (in the Evaluator catalog) is designed for exactly this: describe the criteria in plain English and Foundry generates the scored rubric. Building it is a facilitator task per project; you can also skip it and lean on the built-ins for this lab.
 
 ---
 
@@ -62,16 +59,28 @@ The **Regulatory-Neutrality** evaluator is custom-built for CasePal. It flags an
 
    You don't have to enable anything — the defaults are on for every model in this workshop. To customise (e.g. tighten thresholds or scope a policy to a single agent), you'd click **Create** and assign the new policy to a specific model or agent. The layered story we're building is: **workspace guardrails + agent Instructions rules together** produce the behaviour you're about to see.
 
-3. Open the **Evaluate** tab. Add the shared evaluator set the facilitator prepared:
-   - `groundedness` (built-in)
-   - `safety` (built-in)
-   - `regulatory-neutrality` (custom — the facilitator has already published this to the project)
+3. Wire inline evaluators on the agent's Playground. On the agent's build page, scroll to the **Quick evaluations** panel (right after the Tools + Knowledge + Memory + Guardrail sections) and pick the built-in evaluators relevant to Kai's compound biased prompt:
 
-   ![Foundry Evaluation tab with sub-tabs for Automatic Evaluation, Human Evaluation, and Red team](screenshots/lab-03/07-evaluation-tab.png)
+   ![Quick evaluations panel on the agent Playground showing selectable evaluator chips: Intent resolution, Task adherence, Coherence, Fluency, Relevance, Self harm, Hate and unfairness, Violence, Sexual content, Indirect attack, Code vulnerability. A 'Run full evaluation' button below leads to the batch evaluation workflow.](screenshots/lab-03/nav-02-quick-evaluations.png)
 
-4. Run a batch evaluation using the **`casepal-eval-dataset`** (in `content/assets/`). You should see:
-   - Baseline (Lab 2 agent, no guardrails): regulatory-neutrality score ~0.6–0.8 (some responses drift).
-   - Guarded agent: regulatory-neutrality score ~0.95+.
+   For Lab 3 the useful chips are:
+   - **Indirect attack** — catches injection-flavoured prompts (this is the big one).
+   - **Hate and unfairness / Self harm / Sexual content / Violence** — the four safety categories.
+   - **Relevance** — catches drift from the reviewer's actual question.
+
+   Every chat reply now gets scored on the fly. There is no separate "shared evaluator set" the facilitator publishes for you — the built-ins are simply available in every project.
+
+4. Foundry ships a rich **Evaluator catalog** at workspace **Evaluations → Evaluator catalog**. Take a moment to browse it — this is where **Groundedness-Evaluator**, **Retrieval-Evaluator**, **Response-Completeness-Evaluator**, and the tool-usage evaluators live. All are Built-in and published by Microsoft.
+
+   ![Evaluator catalog table showing built-in evaluators published by Microsoft: Tool-Selection-Evaluator, Tool-Output-Utilization-Evaluator, Tool-Call-Success-Evaluator, Tool-Call-Accuracy-Evaluator, Task-Completion-Evaluator (Preview), Task-Adherence-Evaluator (Preview), Retrieval-Evaluator, Response-Completeness-Evaluator (Preview), Relevance-Evaluator, Intent-Resolution-Evaluator (Preview), Groundedness-Evaluator, Customer-Satisfaction-Evaluator, Coherence-Evaluator, IFEval-Evaluator. A purple 'Create evaluator' button in the top-right.](screenshots/lab-03/nav-04-evaluator-catalog.png)
+
+   For a **domain-specific evaluator** like *Regulatory-Neutrality* (checks whether the reply makes binding statements on behalf of the Agency or recommends specific regulatory actions), Foundry now offers **Custom rubric evaluators**. Click **Create evaluator** at the top-right of the catalog and describe your criteria in plain English — Foundry generates a scored rubric with weights for you. This is a facilitator-owned setup step for this workshop; if you don't see a custom evaluator in the catalog yet, you're skipping this and using the built-ins.
+
+5. Run a batch evaluation. Head to the workspace **Evaluations** page (left nav → Evaluations, then the **Evaluations** tab, **Runs** view) and click **Create**.
+
+   ![Workspace Evaluations page: empty state 'No evaluations found', a search box, Frequency filter, and a purple Create button. A NEW banner reads 'Custom rubric evaluators are here. Describe what your agent should do, and get scored criteria with weights generated for your use case.'](screenshots/lab-03/nav-03-workspace-evaluations.png)
+
+   In the Create flow, pick your **agent version**, the **evaluators** (built-in + custom rubric if you created one), and upload **`content/assets/casepal-eval-dataset.jsonl`** as the dataset. Kick it off. Repeat the run against the bare Lab-2 agent to see the delta.
 
    Comparison from the Builder-rail script `content/assets/lab3_eval.py` running the 22-row dataset through both the bare and the guarded agents:
 
@@ -137,7 +146,8 @@ If any behaviour is missing, check the guardrail rules in Instructions, verify `
 
 ## 🧯 Troubleshooting
 
-- **Regulatory-Neutrality evaluator not visible?** Facilitator needs to publish it to the shared project. Ask.
+- **Regulatory-Neutrality evaluator not in the catalog?** It isn't a built-in. Create one via **Evaluations → Evaluator catalog → Create evaluator** using Foundry's Custom rubric feature, or skip and lean on the built-ins for this lab.
+- **Quick evaluations chips greyed out?** Scroll further down the agent build page — the panel sits under **Guardrail** and the **ITERATE** header. Click **Select evaluators** if you need to pick a different set than the defaults.
 - **Traces tab empty?** App Insights connection not created. Facilitator action (Foundry User cannot create connections). Traces are optional for the checkpoint.
 - **Groundedness score low?** Agent is answering without citing the index. Re-visit Lab 2 Instructions.
 - **Content Safety blocking legitimate dossier text** (rare)? Loosen the relevant threshold by creating a **custom guardrail** on the workspace Guardrails page and assigning it to your model/agent — do not weaken **Prompt Shield**.
