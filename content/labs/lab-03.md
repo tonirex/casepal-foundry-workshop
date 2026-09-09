@@ -70,26 +70,43 @@ A **Regulatory-Neutrality** evaluator for CasePal — one that flags any reply m
 
    Every chat reply now gets scored on the fly. There is no separate "shared evaluator set" the facilitator publishes for you — the built-ins are simply available in every project.
 
-4. Foundry ships a rich **Evaluator catalog** at workspace **Evaluations → Evaluator catalog**. Take a moment to browse it — this is where **Groundedness-Evaluator**, **Retrieval-Evaluator**, **Response-Completeness-Evaluator**, and the tool-usage evaluators live. All are Built-in and published by Microsoft.
+4. Foundry ships a rich **Evaluator catalog** at workspace **Evaluations → Evaluator catalog**. The Groundedness-Evaluator, Retrieval-Evaluator, Relevance-Evaluator, Response-Completeness-Evaluator, and the full tool-usage set are built-in and published by Microsoft. **A custom `Regulatory Neutrality` evaluator has been pre-created for this workshop** — you should see it at the top of the catalog as **Custom · Rubric**.
 
-   ![Evaluator catalog table showing built-in evaluators published by Microsoft: Tool-Selection-Evaluator, Tool-Output-Utilization-Evaluator, Tool-Call-Success-Evaluator, Tool-Call-Accuracy-Evaluator, Task-Completion-Evaluator (Preview), Task-Adherence-Evaluator (Preview), Retrieval-Evaluator, Response-Completeness-Evaluator (Preview), Relevance-Evaluator, Intent-Resolution-Evaluator (Preview), Groundedness-Evaluator, Customer-Satisfaction-Evaluator, Coherence-Evaluator, IFEval-Evaluator. A purple 'Create evaluator' button in the top-right.](screenshots/lab-03/nav-04-evaluator-catalog.png)
+   ![Evaluator catalog table with Regulatory Neutrality at the top (Custom, Rubric, quality/agents, Version 3, Publisher: workshop facilitator), followed by all built-in Microsoft evaluators — Tool-Selection-Evaluator, Tool-Output-Utilization-Evaluator, Tool-Call-Success-Evaluator, Tool-Call-Accuracy-Evaluator, Task-Completion-Evaluator, Task-Adherence-Evaluator, Retrieval-Evaluator, Response-Completeness-Evaluator, Relevance-Evaluator, Intent-Resolution-Evaluator, Groundedness-Evaluator, Customer-Satisfaction-Evaluator, Coherence-Evaluator](screenshots/lab-03/nav-04-evaluator-catalog.png)
 
-   For a **domain-specific evaluator** like *Regulatory-Neutrality* (checks whether the reply makes binding statements on behalf of the Agency or recommends specific regulatory actions), Foundry now offers **Custom rubric evaluators**. Click **Create evaluator** at the top-right of the catalog and describe your criteria in plain English — Foundry generates a scored rubric with weights for you. This is a facilitator-owned setup step for this workshop; if you don't see a custom evaluator in the catalog yet, you're skipping this and using the built-ins.
+   Click **Regulatory Neutrality** to see how the facilitator built it. Foundry's **Custom rubric evaluator** feature takes a plain-English description of what the agent should do and generates a scored rubric with weighted dimensions. For CasePal that produced eight dimensions:
+   - `avoid_binding_directives` (weight 9)
+   - `bias_rebuttal_with_citation` (weight 6)
+   - `explicit_deferral_of_authority` (weight 5)
+   - `process_bounded_guidance` (weight 5)
+   - `citation_validity_alignment` (weight 4)
+   - (plus three more below the fold)
 
-5. Run a batch evaluation. Head to the workspace **Evaluations** page (left nav → Evaluations, then the **Evaluations** tab, **Runs** view) and click **Create**.
+   Pass score threshold: **0.5**. Each dimension is scored 1–5 by a judge model (`gpt-5`), then aggregated to an overall 0–1 score.
 
-   ![Workspace Evaluations page: empty state 'No evaluations found', a search box, Frequency filter, and a purple Create button. A NEW banner reads 'Custom rubric evaluators are here. Describe what your agent should do, and get scored criteria with weights generated for your use case.'](screenshots/lab-03/nav-03-workspace-evaluations.png)
+   ![Regulatory Neutrality evaluator detail: Generated rubric with 8 dimensions, each with a weight (1-10), title, and description. Judge model gpt-5. Pass score threshold 0.5. Evaluator type Rubric, Auto-generate rubric enabled. Regenerate rubric and Save evaluator buttons.](screenshots/lab-03/nav-05-regneut-rubric.png)
 
-   In the Create flow, pick your **agent version**, the **evaluators** (built-in + custom rubric if you created one), and upload **`content/assets/casepal-eval-dataset.jsonl`** as the dataset. Kick it off. Repeat the run against the bare Lab-2 agent to see the delta.
+   > 💡 You don't need to build one yourself for this lab — the facilitator has already done it. If you want to see the flow, click **Create evaluator** at the top-right and browse the form (then Cancel).
 
-   Comparison from the Builder-rail script `content/assets/lab3_eval.py` running the 22-row dataset through both the bare and the guarded agents:
+5. **View a completed batch evaluation run.** The facilitator has already kicked off a run of the guarded agent against a synthetic 20-row dataset using Regulatory Neutrality + Groundedness + Relevance + IndirectAttack + the safety categories. Navigate to **Evaluations → Runs** and open **`eval-dnxagmso`** (or whatever the facilitator names the current run).
+
+   ![Evaluation run detail page for eval-dnxagmso showing one Evaluation run against target casepal-demo-guarded with dataset casepal_demo_guarded_..., status 'In progress' (spinning icon). Buttons at top: Delete, Make recurring, Add run. Compare runs and Analyze Results buttons on the right.](screenshots/lab-03/nav-06-eval-run-in-progress.png)
+
+   Click the run to open the results panel. Look at:
+   - **Overall score** — one number per row for each evaluator.
+   - **Per-dimension scores** for Regulatory Neutrality — see which dimensions the guarded agent scored highest on (usually `explicit_deferral_of_authority` and `avoid_binding_directives`).
+   - **Analyze Results** — Foundry's built-in AI analysis of failed rows.
+
+   > 💡 **Full evaluations take 15–45 minutes** to complete because every row goes through several LLM-judge calls. This lab is a walkthrough — you're looking at the finished output, not waiting for a fresh run.
+
+   For a fast Python comparison against 22 canned prompts, the Builder rail (`content/assets/lab3_eval.py`) shows guarded > baseline on every dimension in under 5 minutes:
 
    ![Terminal transcript of the batch evaluation: per-prompt scores for baseline and guarded agents, averages showing guarded > baseline on every dimension, Content Safety intercepting the direct prompt-injection at the prompt-shield level](screenshots/lab-03/eval-final-terminal.png)
 
 6. Open the **Traces** tab. Send Kai's question again from Chat. Find the resulting trace and inspect:
    - The **Guardrails** step — should show *intercepted / allowed* status.
    - The **Model call** — what the model actually returned.
-   - The **Evaluators** — per-turn scores.
+   - The **Evaluators** — per-turn scores from the Quick evaluations you selected in Step 3.
 
    ![Foundry Traces tab with Trace / Conversation / Response view tabs and filter chips for Status, Duration, Tokens, Cost, Evaluators, and Annotation](screenshots/lab-03/05-traces-tab.png)
 
