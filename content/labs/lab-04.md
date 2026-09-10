@@ -113,11 +113,9 @@ This is where you'd wire an orchestrator to specialists in the portal — one A2
 
 ### Walk 3 (👀) — meet the orchestrator
 
-Back in the **Agents** list, click **`casepal-demo-orchestrator`** — the coordinator that fans out to the four specialists you just met. Open its **Instructions** panel and read the delegation rule; open its **Tools & Knowledge** panel and note it has:
-- The **Foundry IQ knowledge base** (`casepal-knowledge`) attached as an MCP tool — for grounding synthesised replies in the SOP corpus.
-- **Four function-tool declarations** — `extract_case`, `screen_case`, `find_prior_cases`, `draft_rfi` — one per specialist. These make the delegation shape visible in the portal.
+Back in the **Agents** list, click **`casepal-demo-orchestrator`** — the coordinator that fans out to the four specialists you just met. Open its **Instructions** panel and read the delegation rule; open its **Tools & Knowledge** panel and note the **Foundry IQ knowledge base** (`casepal-knowledge`) attached as an MCP tool. That's what the orchestrator uses to ground its synthesised replies in the SOP corpus.
 
-![Orchestrator Instructions panel with the delegation rule that calls Extraction, Screening, Prior-Case, and Comms Drafter](screenshots/lab-04/nav-01-instructions.png)
+![Orchestrator Instructions panel with the delegation rule that describes how the orchestrator would fan out to Extraction, Screening, Prior-Case, and Comms Drafter](screenshots/lab-04/nav-01-instructions.png)
 
 Here is the exact delegation rule (already applied to `casepal-demo-orchestrator`) that Foundry follows when you chat with it:
 
@@ -134,9 +132,7 @@ You are the CasePal orchestrator. On every case:
 6. For HIGH-risk or regulatory-decision requests, apply Lab 3 guardrails.
 ```
 
-The orchestrator has **two modes**:
-- **Portal walkthrough mode** (what you get when you open it in the Playground) — it prefixes replies with a `[Walkthrough reply — …]` banner and produces the target JSON shape *directly*, reasoning over the Foundry IQ corpus rather than emitting unresolved function calls. Confidence is capped at 0.75 whenever a screening gap remains open, per the delegation rule.
-- **Production mode** (what happens when the Builder rail script is the client) — it actually fans out to the four specialists via the function tools; the runner catches each `function_call` event and forwards it to the deployed specialist. Confidence still capped at 0.75 while gaps are open.
+> 💡 **Where are the four function tools?** The portal orchestrator deliberately has **no function-tool declarations** attached, because the Foundry Playground has no runner to resolve them and the reply would hang. Instead, the four specialists you saw in Walk 1 are **called via function tools by the Builder rail script** ([`content/assets/lab4_multiagent.py`](../assets/lab4_multiagent.py)) — that's where the real portal-invisible fan-out lives. The portal walkthrough orchestrator reasons over Foundry IQ directly and produces the target JSON shape itself.
 
 ### Walk 4 (👀) — send Wei Ling's compound question
 
@@ -147,9 +143,11 @@ Screen MDR-2026-0129 for completeness, check whether we've reviewed anything sim
 ```
 
 You should get back a walkthrough reply with:
-- The banner line `[Walkthrough reply — in production this fans out to four specialists. See Lab 4 Builder rail for the real trace.]`
+- The banner line `[Walkthrough reply — in production this fans out to four specialists. See Lab 4 Builder rail (content/assets/lab4_multiagent.py) for the real trace.]`
 - The full synthesised JSON: `intake`, `screening` (with `gaps`, `sop_citations`, `severity`), `prior_cases`, `recommendation` (with `confidence: 0.75` because of the open gap), and `draft_communication` (an RFI email ending with a reviewer-review disclaimer).
-- SOP citations grounded via Foundry IQ.
+- SOP references drawn from Foundry IQ.
+
+> ⏱️ Expect the response to take **60–90 seconds** — the walkthrough orchestrator reasons over the KB and writes ~1500 tokens of structured JSON. Watch the little "typing" indicator; do not resend.
 
 **Walk over to the Builder rail below** to see the same question actually fan out to the four deployed specialists in a real trace.
 
